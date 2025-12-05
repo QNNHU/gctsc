@@ -1,0 +1,7 @@
+.Rproj.user
+/doc/
+/Meta/
+.Rbuildignore
+.RData
+.Rhistory
+LICENSE
