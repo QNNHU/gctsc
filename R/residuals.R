@@ -31,10 +31,10 @@ residuals.gctsc <- function(object,method = NULL, ...) {
   # is.int <- (object$method != "CE")
   is.int <- TRUE
 
-  if (is.int && exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-    seed.keep <- get(".Random.seed", envir = .GlobalEnv)
-    on.exit(assign(".Random.seed", seed.keep, envir = .GlobalEnv))
+  if (!is.null(object$options$seed)) {
     set.seed(object$options$seed)
+  } else {
+    set.seed(sample.int(.Machine$integer.max, 1))
   }
 
   bounds <- object$marginal$bounds

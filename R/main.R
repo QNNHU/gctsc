@@ -185,10 +185,12 @@ gctsc.fit <- function(x = NULL, y, marginal, cormat,
 #' @noRd
 gctsc.estimate <- function(cf) {
 
-  if ( cf$method != "CE" ) {
-    if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-      seed.keep <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-      on.exit(assign(".Random.seed", seed.keep, envir = .GlobalEnv))
+  if (cf$method != "CE") {
+    if (!is.null(cf$options$seed)) {
+      set.seed(cf$options$seed)
+    } else {
+      # generate a reproducible but internal seed
+      set.seed(sample.int(.Machine$integer.max, 1))
     }
   }
 
@@ -200,13 +202,8 @@ gctsc.estimate <- function(cf) {
   log.lik <- build_loglik(cf,M, penalty)
 
   # saving/restoring the random seed (only for methods that need it)
-  ans <- if (cf$method != "CE") {
-    preserve_seed({
-      suppressWarnings(cf$options$opt(start, log.lik, low, up))
-    })
-  } else {
-    suppressWarnings(cf$options$opt(start, log.lik, low, up))
-  }
+  ans <- suppressWarnings(cf$options$opt(start, log.lik, low, up))
+  
 
   eta <- ans$estimate
   names(eta) <- names(cf$coef)

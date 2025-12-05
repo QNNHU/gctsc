@@ -5,7 +5,9 @@
 #' @param object An object of class `gctsc`.
 #' @param ... Ignored. Included for S3 method compatibility.
 #'
-#' @return A named numeric vector of model coefficients.
+#' @return 
+#' A named numeric vector containing the estimated model coefficients, 
+#' including both marginal parameters and copula dependence parameters.
 #' @export
 coef.gctsc <- function(object,...) object$coef
 
@@ -19,7 +21,12 @@ coef.gctsc <- function(object,...) object$coef
 #' @param digits Number of significant digits to display.
 #' @param ... Ignored. Included for S3 method compatibility.
 #'
+#' @return 
+#' Returns the object \code{x} invisibly. 
+#' Called for its side effect of printing a formatted summary of the model fit.
+#'
 #' @export
+#' 
 print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
   cat("\n--- Gaussian Copula Count Time Series Model ---\n")
 
@@ -82,7 +89,16 @@ print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
 #' @param object An object of class `gctsc`.
 #' @param ... Ignored. Included for S3 method compatibility.
 #'
-#' @return A list of class `summary.gctsc` containing model summary statistics.
+#' @return 
+#' A list of class \code{"summary.gctsc"} containing:
+#' \describe{
+#' \item{call}{The model call.}
+#' \item{convergence}{Convergence code from the optimizer.}
+#' \item{coefficients}{A list with two matrices: \code{marginal} and \code{copula}, each containing estimates, standard errors, z-values, and p-values.}
+#' \item{loglik}{Approximate log-likelihood value.}
+#' \item{aic}{Akaike Information Criterion.}
+#' \item{bic}{Bayesian Information Criterion.}
+#' }
 #' @export
 summary.gctsc <- function(object, ...) {
   se <- object$se
@@ -142,8 +158,7 @@ summary.gctsc <- function(object, ...) {
     coefficients = list(marginal = marginal_coef, copula = copula_coef),
     loglik = loglik,
     aic = aic,
-    bic = bic,
-    maximum = -loglik
+    bic = bic
   ), class = "summary.gctsc")
 }
 
@@ -154,6 +169,10 @@ summary.gctsc <- function(object, ...) {
 #' @param x An object of class `summary.gctsc`.
 #' @param digits Number of significant digits to display.
 #' @param ... Ignored. Included for S3 method compatibility.
+#'
+#' @return 
+#' Returns the input object \code{x} invisibly. 
+#' Called for its side effect of printing summary information.
 #'
 #' @export
 print.summary.gctsc <- function(x, digits = 4, ...) {

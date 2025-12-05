@@ -38,16 +38,6 @@ gctsc.opts <- function(seed=round(runif(1,1,100000)), M=1000, ...) {
 
 #' @keywords internal
 #' @noRd
-preserve_seed <- function(expr) {
-  if (exists(".Random.seed", envir = .GlobalEnv)) {
-    seed.keep <- .Random.seed
-    on.exit(assign(".Random.seed", seed.keep, envir = .GlobalEnv), add = TRUE)
-  }
-  force(expr)
-}
-
-#' @keywords internal
-#' @noRd
 validate_x_structure <- function(x, marginal) {
   is_ZI <- has_ZI(marginal)
 
