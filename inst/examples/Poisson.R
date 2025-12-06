@@ -10,11 +10,11 @@ arma_order <- c(1, 0)
 tau <- c(phi)
 
 ## --- Simulate data ---
-set.seed(7)
+
 sim_data <- sim_poisson(mu = mu * rep(1,n),
                         tau = tau,
                         arma_order = arma_order,
-                        nsim = n)
+                        nsim = n, seed= 7)
 y <- sim_data$y
 X <- matrix(1, nrow = n)
 
@@ -51,7 +51,8 @@ fit_ghk <- gctsc(
   marginal = poisson.marg(lambda.lower = 0),
   cormat   = arma.cormat(p = 1, q = 0),
   method   = "GHK",
-  QMC      = TRUE
+  QMC      = TRUE, 
+  options = gctsc.opts(M = 1000, seed = 42)
 )
 
 plot(fit_ghk)

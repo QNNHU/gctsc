@@ -159,6 +159,9 @@ predict(fit)
 
 ### Example 5: Residual diagnostics
 ```{r}
+oldpar <- par(no.readonly = TRUE)
+on.exit(par(oldpar), add = TRUE)
+
 par(mfrow = c(2, 3)) 
 plot(fit)
 ```
@@ -236,6 +239,9 @@ summary(fit)
 ## ---------------------------------------------------------------
 ## Residual diagnostics
 ## ---------------------------------------------------------------
+oldpar <- par(no.readonly = TRUE)
+on.exit(par(oldpar), add = TRUE)
+
 par(mfrow = c(2, 3))
 plot(fit)
 

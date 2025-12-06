@@ -2,9 +2,9 @@ citHeader("To cite gctsc in publications, please use:")
 
 bibentry(
   "Manual",
-  title  = "gctsc: Gaussian and t Copula Time Series Models for Count Data",
+  title  = "gctsc: Gaussian Copula Time Series Models for Count Data",
   author = c(
-    person("Quynh Nhu", "Nguyen"),
+    person("Quynh", "Nguyen"),
     person("Victor", "De Oliveira")
   ),
   year   = "2025",

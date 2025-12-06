@@ -8,10 +8,8 @@
 #' @param method Can be \code{TMET} or \code{GHK}
 #' @param ... Ignored. Included for S3 method compatibility.
 #' @return A list containing:
-#' \itemize{
-#'   \item\code{residuals}: A numeric vector of randomized quantile residuals.
-#'   \item\code{pit}: A numeric vector of PIT values.
-#' }
+#'   \item{residuals}{A numeric vector of randomized quantile residuals.}
+#'   \item{pit}{A numeric vector of PIT values.}
 #'
 #' @references
 #' Dunn, P. K. and Smyth, G. K. (1996), Randomized quantile residuals,
@@ -33,8 +31,6 @@ residuals.gctsc <- function(object,method = NULL, ...) {
 
   if (!is.null(object$options$seed)) {
     set.seed(object$options$seed)
-  } else {
-    set.seed(sample.int(.Machine$integer.max, 1))
   }
 
   bounds <- object$marginal$bounds
@@ -150,9 +146,9 @@ plot.gctsc <- function(x, caption = rep("", 6),
   Main <- rep("", 5)
   Main[which] <- rep(main, length.out = sum(show))
   
-  one.fig <- prod(par("mfcol")) == 1
-  op <- par(ask = ask, ...)
+  op <- par(no.readonly = TRUE)
   on.exit(par(op))
+  par(ask = ask, ...)
   
   # Flags for NA safety
   has_res_na <- anyNA(res)

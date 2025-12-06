@@ -9,7 +9,7 @@ gctsc(
   data,
   marginal,
   cormat,
-  method = c("TMET", "GHK", "CE", "VMET"),
+  method = c("TMET", "GHK", "CE"),
   c = 0.5,
   QMC = TRUE,
   pm = 30,
@@ -21,65 +21,106 @@ gctsc(
 \item{formula}{A formula (e.g., \code{y ~ x1 + x2}) or, for zero–inflated
 marginals, a named list of formulas \code{list(mu = ..., pi0 = ...)}.}
 
-\item{data}{A data frame containing \code{y} and covariates referenced in the formula(s).}
+\item{data}{A data frame containing \code{y} and covariates referenced in the
+formula(s).}
 
 \item{marginal}{A marginal model object such as \code{\link{poisson.marg}},
-\code{\link{negbin.marg}}, \code{\link{zib.marg}}, or \code{\link{zibb.marg}}.}
+\code{\link{negbin.marg}}, \code{\link{zib.marg}}, or \code{\link{zibb.marg}}.
+See \code{\link{marginal.gctsc}} for the full list of supported marginals.}
 
 \item{cormat}{A correlation structure such as \code{\link{arma.cormat}}.}
 
 \item{method}{One of \code{"TMET"}, \code{"GHK"}, or \code{"CE"}.}
 
-\item{c}{Smoothing/tilting constant for CE (ignored otherwise). Default \code{0.5}.}
+\item{c}{Smoothing constant for the CE approximation (ignored for TMET/GHK).
+Default is \code{0.5}.}
 
-\item{QMC}{Logical; use quasi–Monte Carlo for simulation–based methods.}
+\item{QMC}{Logical; use quasi–Monte Carlo sampling for simulation–based
+likelihood approximations.}
 
-\item{pm}{Integer; truncated AR order used to approximate ARMA(\eqn{p,q}) when \eqn{q>0} (TMET only).}
+\item{pm}{Integer; truncated AR order used to approximate ARMA(\eqn{p,q})
+when \eqn{q>0} (TMET only).}
 
-\item{start}{Optional numeric vector of starting values (marginal then dependence parameters).}
+\item{start}{Optional numeric vector of starting values (marginal parameters
+followed by dependence parameters).}
 
-\item{options}{Optional list of tuning/optimization controls. If \code{NULL},
-defaults from \code{gctsc.opts()} are used. Any fields supplied override the defaults.}
+\item{options}{Optional list specifying the random seed and Monte Carlo
+sample size for the likelihood approximation. If omitted, default values
+from \code{gctsc.opts()} are used (i.e., \code{seed = NULL} and
+\code{M = 1000}).
+
+For simulation–based likelihoods (\code{method = "GHK"} or
+\code{method = "TMET"}), providing a fixed \code{seed} (e.g.,
+\code{options = gctsc.opts(seed = 123)}) is \strong{strongly recommended} to
+ensure reproducible and numerically stable likelihood evaluations. Without
+a fixed seed, the approximate log-likelihood may vary slightly between
+evaluations, which can affect numerical optimization.
+
+See \code{\link{gctsc.opts}} for additional tuning parameters and their
+default values.}
 }
 \value{
-A list containing:
-\itemize{
-\item \code{coef} — parameter estimates,
-\item \code{maximum} — approximate log-likelihood,
-\item \code{se} — standard errors (if available),
-\item \code{terms}, \code{model}, \code{call} — model metadata.
-}
+An object of class \code{"gctsc"} containing:
+\item{coef}{Numeric vector containing the parameter estimates, with marginal parameters first and dependence parameters last.}
+\item{maximum}{The maximized approximate log-likelihood value, returned on the internal minus scale used by the optimizer.}
+\item{hessian}{Estimated Hessian matrix at the optimum, when available.}
+\item{se}{Standard errors from the inverse Hessian, or NA if unavailable or not positive-definite.}
+\item{marginal}{The marginal model object used (e.g., Poisson, negative binomial, ZIB, ZIBB).}
+\item{cormat}{The correlation structure object used, typically created by \code{arma.cormat()}.}
+\item{ibeta}{Integer vector giving the indices of the marginal parameters within \code{coef}.}
+\item{itau}{Integer vector giving the indices of the dependence parameters within \code{coef}.}
+\item{nbeta}{Number of marginal parameters.}
+\item{ntau}{Number of dependence parameters.}
+\item{options}{List of fitting and optimization controls, typically created by \code{gctsc.opts()}.}
+\item{call}{The matched call.}
+\item{formula}{The model formula(s) used to specify the marginal mean and zero-inflation components.}
+\item{terms}{Terms objects for the marginal model(s).}
+\item{model}{The model frame used for estimation (returned only when needed).}
+\item{x}{Design matrix for the marginal mean component.}
+\item{z}{Design matrix for the zero-inflation component (ZIB or ZIBB only), or NULL otherwise.}
+\item{y}{The response vector.}
+\item{n}{Number of observations used in the fit.}
+\item{method}{Character string identifying the likelihood approximation used (TMET, GHK, or CE).}
+\item{QMC}{Logical flag indicating whether quasi-Monte Carlo sampling was used.}
+\item{pm}{Truncated AR order used to approximate ARMA(p,q) when q > 0 (TMET only).}
+\item{convergence}{Optimizer convergence code (0 indicates successful convergence).}
+
+The returned object can be used with
+\code{\link{summary.gctsc}}, \code{\link{predict.gctsc}},
+\code{\link{residuals.gctsc}}, and \code{\link{plot.gctsc}}.
 }
 \description{
 Fits a Gaussian copula model to univariate count time series using discrete
-marginals (Poisson, negative binomial, binomial/beta–binomial, and zero–inflated
-variants) and latent dependence via ARMA correlation structures. The
-multivariate normal rectangle probability is evaluated using Minimax
-Exponential Tilting (TMET), Geweke–Hajivassiliou–Keane (GHK), or Continuous
-Extension (CE).
+marginals (Poisson, negative binomial, binomial/beta–binomial, and
+zero–inflated variants) and latent dependence through ARMA correlation
+structures. The multivariate normal rectangle probability is evaluated using
+Minimax Exponential Tilting (TMET), the
+Geweke–Hajivassiliou–Keane (GHK) simulator, or the Continuous Extension (CE)
+approximation.
 }
 \details{
 The interface mirrors \code{glm()}. Zero–inflated marginals accept a list of
-formulas, e.g., \code{list(mu = y ~ x, pi0 = ~ z)}. Non–zero–inflated
-marginals accept a single formula or \code{list(mu = ...)}.
-\subsection{Formulas}{
+formulas, for example \code{list(mu = y ~ x, pi0 = ~ z)}. Non–zero–inflated
+marginals accept a single formula (e.g., \code{y ~ x1 + x2}).
 
-For zero–inflated marginals, if neither \code{mu} nor \code{pi0} is supplied,
-both default to intercept–only: \code{mu ~ 1}, \code{pi0 ~ 1}.
-If \code{mu} is supplied but \code{pi0} is missing, \code{pi0 ~ 1} is used.
+\strong{Formula handling}
+For zero–inflated marginals:
+\itemize{
+\item If neither \code{mu} nor \code{pi0} is supplied, both default to
+intercept-only models (\code{mu ~ 1}, \code{pi0 ~ 1}).
+\item If \code{mu} is supplied but \code{pi0} is omitted,
+\code{pi0 ~ 1} is used.
 }
 
-\subsection{Dependence}{
+\strong{Dependence structure}
+ARMA parameters are determined by \code{cormat}.
+ARMA(0,0) is not supported.
 
-The ARMA parameters are encoded in \code{cormat}; models must be
-stationary/invertible. ARMA(0,0) is not supported.
-}
-
-\subsection{Method-specific notes}{
-
-CE ignores \code{QMC} and \code{M}.
-GHK/TMET require \code{options$M} (a positive integer).
-TMET may also use \code{pm} when \eqn{q>0}.
+\strong{Method-specific notes}
+\itemize{
+\item CE ignores \code{QMC} and \code{options$M}.
+\item TMET and GHK require \code{options$M} to be a positive integer.
+\item TMET optionally uses \code{pm} when \eqn{q>0}.
 }
 }
 \examples{

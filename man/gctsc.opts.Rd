@@ -4,7 +4,7 @@
 \alias{gctsc.opts}
 \title{Set Options for Gaussian Copula Time Series Model}
 \usage{
-gctsc.opts(seed = round(runif(1, 1, 1e+05)), M = 1000, ...)
+gctsc.opts(seed = NULL, M = 1000, ...)
 }
 \arguments{
 \item{seed}{Integer. Random seed for reproducibility (default: a random integer between 1 and 100000).}
@@ -12,6 +12,13 @@ gctsc.opts(seed = round(runif(1, 1, 1e+05)), M = 1000, ...)
 \item{M}{Integer. Number of Monte Carlo samples used in the likelihood approximation (default: 1000).}
 
 \item{...}{Ignored. Included for S3 method compatibility.}
+}
+\value{
+A list with components:
+\item{\code{seed}}{ Integer. The random seed used.}
+\item{\code{M}}{ Integer. Number of Monte Carlo samples.}
+\item{\code{opt}}{ A function used internally by \code{gctsc()} to
+perform optimization of the approximate log-likelihood.}
 }
 \description{
 Creates a control list for simulation and likelihood approximation in the

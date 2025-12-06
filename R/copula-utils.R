@@ -8,8 +8,16 @@
 #' @param ... Ignored. Included for S3 method compatibility.
 #'
 #'
+#' @return
+#' A list with components:
+#'   \item{\code{seed}}{ Integer. The random seed used.}
+#'   \item{\code{M}}{ Integer. Number of Monte Carlo samples.}
+#'   \item{\code{opt}}{ A function used internally by \code{gctsc()} to
+#'         perform optimization of the approximate log-likelihood.}
+
+#' 
 #' @export
-gctsc.opts <- function(seed=round(runif(1,1,100000)), M=1000, ...) {
+gctsc.opts <- function(seed=NULL, M=1000, ...) {
 
 
   control <- list(...)

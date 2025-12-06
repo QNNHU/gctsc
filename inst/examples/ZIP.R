@@ -44,7 +44,7 @@ fit_zip <- gctsc(
   formula  = list(mu = y ~ 1, pi0 = ~ 1),
   marginal = zip.marg(link = "identity"),
   cormat   = arma.cormat(p = 1, q = 0),
-  method   = "GHK",
+  method   = "CE",
   options  = gctsc.opts(seed = 1, M = 1000)
 )
 

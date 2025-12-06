@@ -12,7 +12,13 @@
 \item{...}{Ignored. Included for S3 method compatibility.}
 }
 \value{
-A list of class \code{summary.gctsc} containing model summary statistics.
+A list of class \code{"summary.gctsc"} containing:
+\item{call}{The model call.}
+\item{convergence}{Convergence code from the optimizer.}
+\item{coefficients}{A list with two matrices: \code{marginal} and \code{copula}, each containing estimates, standard errors, z-values, and p-values.}
+\item{loglik}{Approximate log-likelihood value.}
+\item{aic}{Akaike Information Criterion.}
+\item{bic}{Bayesian Information Criterion.}
 }
 \description{
 Computes standard errors, z-values, and p-values for the estimated parameters

@@ -41,7 +41,8 @@ fit_tmet <- gctsc(
   marginal = negbin.marg(lambda.lower = c(0,0)),
   cormat   = arma.cormat(p = 1, q = 1),
   method   = "TMET",
-  QMC      = TRUE
+  QMC      = TRUE,
+  options = gctsc.opts(M = 1000, seed = 42)
 )
 summary(fit_tmet)
 plot(fit_tmet)       # residual diagnostics
@@ -53,7 +54,8 @@ fit_ghk <- gctsc(
   marginal = negbin.marg(lambda.lower = c(0,0)),
   cormat   = arma.cormat(p = 1, q = 1),
   method   = "GHK",
-  QMC      = TRUE
+  QMC      = TRUE,
+  options = gctsc.opts(M = 1000, seed = 42)
 )
 
 plot(fit_ghk)

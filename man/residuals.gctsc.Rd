@@ -15,10 +15,8 @@
 }
 \value{
 A list containing:
-\itemize{
-\item\code{residuals}: A numeric vector of randomized quantile residuals.
-\item\code{pit}: A numeric vector of PIT values.
-}
+\item{residuals}{A numeric vector of randomized quantile residuals.}
+\item{pit}{A numeric vector of PIT values.}
 }
 \description{
 Computes residuals for a fitted \code{gctsc} object using randomized quantile residuals.

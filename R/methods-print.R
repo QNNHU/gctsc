@@ -91,14 +91,12 @@ print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
 #'
 #' @return 
 #' A list of class \code{"summary.gctsc"} containing:
-#' \describe{
 #' \item{call}{The model call.}
 #' \item{convergence}{Convergence code from the optimizer.}
 #' \item{coefficients}{A list with two matrices: \code{marginal} and \code{copula}, each containing estimates, standard errors, z-values, and p-values.}
 #' \item{loglik}{Approximate log-likelihood value.}
 #' \item{aic}{Akaike Information Criterion.}
 #' \item{bic}{Bayesian Information Criterion.}
-#' }
 #' @export
 summary.gctsc <- function(object, ...) {
   se <- object$se

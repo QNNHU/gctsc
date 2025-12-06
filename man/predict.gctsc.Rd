@@ -23,13 +23,14 @@ numeric vector, or a 1-row matrix/data.frame with column names matching the
 model covariates.}
 }
 \value{
-A list containing:
-\itemize{
-\item \code{mean}, \code{median}, \code{mode}, \code{variance}
-\item \code{CRPS} and \code{LOGS} (if \code{y_obs} provided)
-\item \code{p_y}: predictive pmf over \code{0:y_max}
-\item \code{lower}, \code{upper}: 95\\% predictive interval
-}
+\item{mean}{Predictive mean of \eqn{Y_{t+1}}.}
+\item{median}{Predictive median of \eqn{Y_{t+1}}.}
+\item{mode}{Predictive mode of \eqn{Y_{t+1}}.}
+\item{variance}{Predictive variance of \eqn{Y_{t+1}}.}
+\item{CRPS}{Continuous Ranked Probability Score (if \code{y_obs} is provided).}
+\item{LOGS}{Logarithmic score (if \code{y_obs} is provided).}
+\item{p_y}{Predictive pmf over \eqn{(0,\dots,y_{\max})}.}
+\item{lower, upper}{ 95\eqn{\%} predictive interval bounds.}
 }
 \description{
 Computes the one-step-ahead predictive distribution for a fitted Gaussian copula

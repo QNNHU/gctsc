@@ -40,7 +40,6 @@
 #'
 #' @export
 pmvn_tmet <- function(lower, upper, tau, od, pm = 30,M = 1000, QMC = TRUE, ret_llk=TRUE){
-  set.seed(1)
   if (length(tau) != sum(od)) {
     stop("Length of 'tau' must equal sum of AR and MA orders: length(tau) = ",
          length(tau), ", expected = ", sum(od), ".")
