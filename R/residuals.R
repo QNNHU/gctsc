@@ -216,7 +216,9 @@ plot.gctsc <- function(x,
   
   op <- par(no.readonly = TRUE)
   par(mfrow = c(2, 3))
-  on.exit(par(op), add = TRUE)
+  on.exit({
+    try(par(op), silent = TRUE)
+  }, add = TRUE)
   
   ## 1. Time series of residuals
   if (!has_res_na) {

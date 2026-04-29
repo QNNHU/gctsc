@@ -40,7 +40,7 @@ Additional features include:
 From CRAN (after release):
 
 ```r
-install.packages("gctsc"
+install.packages("gctsc")
 ```
 
 From Github:
@@ -111,4 +111,4 @@ Computational Statistics & Data Analysis.
 
 Nguyen, Q. N., & De Oliveira, V. (2026).
 Scalable Likelihood Inference for Student–t Copula Count Time Series.
-Manuscript in preparation.
+Stats.
