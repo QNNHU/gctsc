@@ -19,34 +19,36 @@ coef.gctsc <- function(object,...) object$coef
 #' @param digits Number of significant digits to display.
 #' @param ... Ignored. Included for S3 method compatibility.
 #'
+#' @method print gctsc
 #' @export
 print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
   cat("\n--- Copula Count Time Series Model ---\n")
   cat("Copula family:", x$family, "\n")
-  if (!is.null(x$df)) {
+  if(x$family =="t"){if (!is.null(x$df)) {
     cat("Degrees of freedom:", x$df, "\n")
   }
+  }
   cat("Sample size (n):", x$n, "\n")
-
+  
   method_label <- switch(x$method,
                          "TMET" = "TMET: Tilted Importance Sampling",
                          "GHK"  = "GHK: Sequential Importance Sampling",
                          "CE"   = "CE: Continuous Extension Approximation",
                          paste("Unknown method:", x$method))
   cat("Estimation method:", method_label, "\n\n")
-
+  
   cat("Call:\n", deparse(x$call, width.cutoff = floor(getOption("width") * 0.85)), "\n\n")
-
+  
   if (x$convergence != 0) {
     cat("Warning: model did not converge (code", x$convergence, ")\n\n")
   }
-
+  
   coefs <- x$coef
   se <- x$se
   has_se <- !is.null(se) && length(se) == length(coefs)
-
+  
   if (x$nbeta > 0) {
-    cat("Marginal parameters (psi):\n")
+    cat("Marginal parameters:\n")
     beta_vals <- coefs[x$ibeta]
     if (has_se) {
       beta_se <- se[x$ibeta]
@@ -58,9 +60,9 @@ print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
   } else {
     cat("No marginal parameters estimated.\n\n")
   }
-
+  
   if (x$ntau > 0) {
-    cat("Copula dependence parameters (tau):\n")
+    cat("Copula dependence parameters:\n")
     tau_vals <- coefs[x$itau]
     if (has_se) {
       tau_se <- se[x$itau]
@@ -72,10 +74,10 @@ print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
   } else {
     cat("No copula dependence parameters estimated.\n\n")
   }
-
+  
   cat("Log-likelihood (approximate):", formatC(-x$maximum, digits = digits, format = "f"), "\n")
   cat("Monte Carlo draws (M):", x$options$M, "\n")
-
+  
   invisible(x)
 }
 
@@ -88,6 +90,7 @@ print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
 #' @param ... Ignored. Included for S3 method compatibility.
 #'
 #' @return A list of class `summary.gctsc` containing model summary statistics.
+#' @method summary gctsc
 #' @export
 summary.gctsc <- function(object, ...) {
   se <- object$se
@@ -159,30 +162,30 @@ summary.gctsc <- function(object, ...) {
 #' @param x An object of class `summary.gctsc`.
 #' @param digits Number of significant digits to display.
 #' @param ... Ignored. Included for S3 method compatibility.
-#'
+#' @method print summary.gctsc
 #' @export
 print.summary.gctsc <- function(x, digits = 4, ...) {
   cat("\n--- Summary of Copula Time Series Model ---\n")
   cat("Call:\n", deparse(x$call, width.cutoff = floor(getOption("width") * 0.85)), "\n")
-
+  
   if (x$convergence != 0) {
     cat("\nWarning: model did not converge (code", x$convergence, ")\n\n")
   }
-
+  
   if (!is.null(x$coefficients$marginal)) {
     cat("\nMarginal Model Coefficients:\n")
     printCoefmat(x$coefficients$marginal, digits = digits, signif.legend = FALSE)
   } else {
     cat("\nNo coefficients in the marginal model.\n")
   }
-
+  
   if (!is.null(x$coefficients$copula)) {
     cat("\nCopula (Dependence) Coefficients:\n")
     printCoefmat(x$coefficients$copula, digits = digits, signif.legend = FALSE)
   } else {
     cat("\nNo coefficients in the copula dependence model.\n")
   }
-
+  
   # Safe signif. codes check
   all_coefs <- do.call(rbind, x$coefficients)
   if (!is.null(all_coefs) && ncol(all_coefs) >= 4) {
@@ -192,11 +195,11 @@ print.summary.gctsc <- function(x, digits = 4, ...) {
       cat("---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n")
     }
   }
-
+  
   cat("\nModel Fit Statistics:\n")
   cat("  Log-likelihood:", formatC(x$loglik, format = "f", digits = digits), "\n")
   cat("  AIC:            ", formatC(x$aic, format = "f", digits = digits), "\n")
   cat("  BIC:            ", formatC(x$bic, format = "f", digits = digits), "\n")
-
+  
   invisible(x)
 }

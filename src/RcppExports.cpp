@@ -24,7 +24,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ptmvn_tmet
-List ptmvn_tmet(List args);
+NumericVector ptmvn_tmet(List args);
 RcppExport SEXP _gctsc_ptmvn_tmet(SEXP argsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -35,7 +35,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ptmvn_ghk
-List ptmvn_ghk(List args);
+NumericVector ptmvn_ghk(List args);
 RcppExport SEXP _gctsc_ptmvn_ghk(SEXP argsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -46,7 +46,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ptmvt_tmet
-List ptmvt_tmet(List args);
+NumericVector ptmvt_tmet(List args);
 RcppExport SEXP _gctsc_ptmvt_tmet(SEXP argsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -57,7 +57,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ptmvmn_ghk
-List ptmvmn_ghk(List args);
+NumericVector ptmvmn_ghk(List args);
 RcppExport SEXP _gctsc_ptmvmn_ghk(SEXP argsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -68,7 +68,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ptmvt_ghk
-List ptmvt_ghk(List args);
+NumericVector ptmvt_ghk(List args);
 RcppExport SEXP _gctsc_ptmvt_ghk(SEXP argsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

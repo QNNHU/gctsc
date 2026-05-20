@@ -23,7 +23,7 @@ using namespace Rcpp;
    NumericVector a = model["a"];
    NumericVector v(n);
    NumericVector mt(n);
-   NumericMatrix Theta(n + 1, q + 1);
+   NumericMatrix Theta(n + 1, m + 1);
    NumericVector llk(n);
    NumericMatrix res(n, 2);
    int len_phi = phi.size();
@@ -76,6 +76,7 @@ using namespace Rcpp;
       for (int s = 0; s < i; ++s) {
         sum_v += Theta(i, i - s) * Theta(i, i - s) * v[s];
       }
+      v[i] = kappa(i + 1, i + 1) - sum_v;
 
         //compute mt
        double A = 0.0;
@@ -161,7 +162,7 @@ using namespace Rcpp;
    NumericVector v(n);
    NumericVector mt(n);
    double d;
-   NumericMatrix Theta(n + 1, q + 1);
+   NumericMatrix Theta(n + 1, m + 1);
    NumericVector llk(n);
    NumericMatrix res(n, 2);
    int len_phi = phi.size();
@@ -214,7 +215,7 @@ using namespace Rcpp;
        for (int s = 0; s < i; ++s) {
          sum_v += Theta(i, i - s) * Theta(i, i - s) * v[s];
        }
-       
+       v[i] = kappa(i + 1, i + 1) - sum_v;
        //compute mt
        double A = 0.0;
        for (int s = 1; s <= i; ++s) {

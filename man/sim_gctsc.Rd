@@ -173,6 +173,11 @@ giving the binomial model.
 \item Zero--inflated marginals include a separate \code{pi0} parameter that
 controls the extra probability mass at zero.
 }
+
+\strong{Worked examples.}
+Additional worked examples, including Gaussian and Student--t copula
+models with zero-inflated marginals, are provided in the installed
+example scripts; see \code{\link{gctsc-examples}}.
 }
 \examples{
 # Poisson example
@@ -196,5 +201,8 @@ prob <- plogis(0.2 + 0.3 * sin(2 * pi * (1:n) / 12) +
              0.5 * cos(2 * pi * (1:n) / 12) + 0.3 * xi)
 sim_zibb(prob, rho = 1/6, pi0 = 0.2, size = 24, tau = 0.5,
  arma_order = c(1, 0),family = "t", df = 10, nsim = 100)
-
+}
+\seealso{
+\code{\link{gctsc}}, \code{\link{sim_gctsc}}, \code{\link{marginal.gctsc}},
+\code{\link{pmvn}}, \code{\link{pmvt}}, \code{\link{predict.gctsc}}
 }

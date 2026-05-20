@@ -4,25 +4,36 @@
 \alias{gctsc.opts}
 \title{Set Options for Gaussian and Student t Copula Time Series Model}
 \usage{
-gctsc.opts(seed = NULL, M = 1000, ...)
+gctsc.opts(seed = 1, M = c(100, 1000), ...)
 }
 \arguments{
-\item{seed}{recommended to provde a seed. Integer specifying the random seed used for Monte Carlo
-simulation during likelihood evaluation. Fixing the seed ensures
-reproducible optimization results and stable maximum likelihood estimates.}
+\item{seed}{Integer specifying the random seed used for Monte Carlo or
+quasi-Monte Carlo simulation during likelihood evaluation. Setting a seed is
+recommended for simulation-based methods because it makes the objective
+function reproducible across optimization steps.}
 
-\item{M}{Integer. Number of Monte Carlo samples used in the likelihood approximation (default: 1000).}
+\item{M}{Positive integer or vector of two positive integers. Number of Monte
+Carlo or quasi-Monte Carlo samples used in the likelihood approximation. If
+a single value is supplied, that value is used throughout the optimization.
+If a vector of length two is supplied, staged optimization is used: the
+model is first fitted using the first value of \code{M}, and the resulting
+estimates are then used as starting values for a second fit using the second
+value of \code{M}. This option is used only for simulation-based methods
+such as \code{"GHK"} and \code{"TMET"} and is ignored for
+\code{method = "CE"}.}
 
-\item{...}{Ignored. Included for S3 method compatibility.}
+\item{...}{Additional control arguments passed to \code{\link[stats]{optim}}.}
 }
 \value{
 A list with components:
-\item{\code{seed}}{ Integer. The random seed used.}
-\item{\code{M}}{ Integer. Number of Monte Carlo samples.}
-\item{\code{opt}}{ A function used internally by \code{gctsc()} to
-perform optimization of the approximate log-likelihood.}
+\item{\code{seed}}{Integer. The random seed used.}
+\item{\code{M}}{Positive integer or vector of two positive integers specifying
+the Monte Carlo or quasi-Monte Carlo sample sizes.}
+\item{\code{opt}}{A function used internally by \code{gctsc()} to optimize
+the approximate log-likelihood.}
 }
 \description{
 Creates a control list for simulation and likelihood approximation in the
-Gaussian ad Student t copula model, including the random seed and Monte Carlo settings.
+Gaussian and Student t copula model, including the random seed, Monte Carlo
+settings, and optimization controls.
 }

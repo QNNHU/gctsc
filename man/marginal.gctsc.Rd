@@ -5,74 +5,105 @@
 \alias{poisson.marg}
 \alias{negbin.marg}
 \alias{binom.marg}
+\alias{bbinom.marg}
 \alias{zip.marg}
 \alias{zib.marg}
-\alias{bbinom.marg}
 \alias{zibb.marg}
-\title{Marginal Models for Copula Time Series}
+\title{Marginal Model Constructors for \pkg{gctsc}}
 \usage{
-poisson.marg(link = "identity", lambda.lower = NULL, lambda.upper = NULL)
+poisson.marg(link = "log", lambda.lower = NULL, lambda.upper = NULL)
 
 binom.marg(link = "logit", size = NULL, lambda.lower = NULL, lambda.upper = NULL)
 
 zib.marg(link = "logit", size = NULL, lambda.lower = NULL, lambda.upper = NULL)
 
-negbin.marg(link = "identity", lambda.lower = NULL, lambda.upper = NULL)
+negbin.marg(link = "log", lambda.lower = NULL, lambda.upper = NULL)
 
-zip.marg(link = "identity", lambda.lower = NULL, lambda.upper = NULL)
+zip.marg(link = "log", lambda.lower = NULL, lambda.upper = NULL)
 
 bbinom.marg(link = "logit", size, lambda.lower = NULL, lambda.upper = NULL)
 
 zibb.marg(link = "logit", size,  lambda.lower = NULL, lambda.upper = NULL)
 }
 \arguments{
-\item{link}{The link function for the mean (e.g., \code{"log"}, \code{"logit"}, \code{"identity"}).}
+\item{link}{Link function used for the main marginal component.
+Supported links depend on the marginal family; see Description.}
 
-\item{lambda.lower}{Optional lower bounds on parameters.}
+\item{lambda.lower}{Optional lower bounds on the marginal parameters.}
 
-\item{lambda.upper}{Optional upper bounds on parameters.}
+\item{lambda.upper}{Optional upper bounds on the marginal parameters.}
 
-\item{size}{Number of trials (for binomial-type models).}
+\item{size}{Number of trials for Binomial, Zero-Inflated Binomial,
+Beta--Binomial, and Zero-Inflated Beta--Binomial marginals. For these
+marginals, \code{size} is currently assumed to be a single fixed positive
+integer. For Beta--Binomial and Zero-Inflated Beta--Binomial marginals,
+\code{size} should be greater than 1.}
 }
 \value{
-A list of class \code{"marginal.gctsc"} representing the marginal model.
+A marginal model object of class \code{"marginal.gctsc"}.
 }
 \description{
-The following marginal models are currently available:
-\describe{
-\item{\code{poisson.marg(link = "log")}}{Poisson distribution.}
-\item{\code{negbin.marg(link = "log")}}{Negative binomial distribution.}
-\item{\code{binom.marg(link = "logit", size)}}{Binomial distribution with fixed number of trials.}
-\item{\code{bbinom.marg(link = "logit", size)}}{Beta-binomial with overdispersion.}
-\item{\code{zip.marg(link = "log")}}{Zero-inflated Poisson model.}
-\item{\code{zib.marg(link = "logit", size)}}{Zero-inflated binomial.}
-\item{\code{zibb.marg(link = "logit", size)}}{Zero-inflated beta-binomial with separate covariates for zero inflation.}
+These functions construct marginal model objects for use with
+\code{\link{gctsc}}. Each constructor returns an object of class
+\code{"marginal.gctsc"} containing the information needed to initialize
+marginal parameters and compute the latent truncation bounds used in the
+copula likelihood.
+
+The following marginal families are currently supported:
+\itemize{
+\item Poisson: \code{poisson.marg()}
+\item Negative Binomial: \code{negbin.marg()}
+\item Binomial: \code{binom.marg()}
+\item Beta--Binomial: \code{bbinom.marg()}
+\item Zero-Inflated Poisson: \code{zip.marg()}
+\item Zero-Inflated Binomial: \code{zib.marg()}
+\item Zero-Inflated Beta--Binomial: \code{zibb.marg()}
+}
+
+Supported link functions depend on the marginal family:
+\itemize{
+\item \code{poisson.marg()}, \code{zip.marg()}, and
+\code{negbin.marg()} support \code{"identity"} and \code{"log"}.
+\item \code{binom.marg()}, \code{bbinom.marg()},
+\code{zib.marg()}, and \code{zibb.marg()} currently support
+\code{"logit"} only.
 }
 }
 \details{
-These functions define the marginal distributions used in copula-based count time series models.
+Marginal Models for Copula Count Time Series
 
-Each marginal constructor returns an object of class \code{"marginal.gctsc"} which defines:
+The marginal constructors are designed to be supplied to \code{\link{gctsc}},
+rather than called during likelihood evaluation by the user. Each returned
+marginal object contains internal functions for:
 \itemize{
-\item \code{start}: a function to compute starting values.
-\item \code{npar}: number of parameters.
-\item \code{bounds}: truncation bounds on the latent Gaussian.
+\item computing starting values for the marginal parameters;
+\item determining the number of marginal parameters;
+\item converting observed counts into lower and upper latent truncation
+bounds for the copula likelihood.
 }
 
-These marginals are designed to work with \code{gctsc()} and its related methods.
+Internally, the design input \code{x} is represented as a named list of
+design matrices. For non-zero-inflated marginals, \code{x} contains
+\code{x$mu}. For zero-inflated marginals, \code{x} contains both
+\code{x$mu} and \code{x$pi0}. These matrices are constructed automatically
+by \code{\link{gctsc}} from the supplied formula and data.
+
+For zero-inflated marginals, the \code{mu} component controls the main
+count distribution, while the \code{pi0} component controls the structural
+zero probability through a logit link.
+
+The optional bounds \code{lambda.lower} and \code{lambda.upper} are attached
+to the starting values and used during numerical optimization.
 }
 \examples{
-poisson.marg(link = "identity")
+poisson.marg(link = "log")
+negbin.marg(link = "log")
+binom.marg(link = "logit", size = 10)
+bbinom.marg(link = "logit", size = 24)
+zip.marg(link = "log")
+zib.marg(link = "logit", size = 10)
 zibb.marg(link = "logit", size = 24)
-
-}
-\references{
-Cribari-Neto, F. and Zeileis, A. (2010). Beta regression in R. \emph{Journal of Statistical Software}, \strong{34}(2): 1–24.
-
-Ferrari, S.L.P. and Cribari-Neto, F. (2004). Beta regression for modeling rates and proportions. \emph{Journal of Applied Statistics}, \strong{31}(7): 799–815.
-
-Masarotto, G. and Varin, C. (2012). Gaussian copula marginal regression. \emph{Electronic Journal of Statistics}, \strong{6}: 1517–1549.
 }
 \seealso{
-\code{\link{gctsc}}, \code{\link{predict.gctsc}}, \code{\link{arma.cormat}}
+\code{\link{gctsc}}, \code{\link{arma.cormat}}
 }

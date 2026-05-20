@@ -6,10 +6,14 @@
 #' Student--t copula count time series model.
 #'
 #' For discrete responses, residuals are constructed using the
-#' randomized probability integral transform (PIT) as proposed by
-#' Dunn and Smyth (1996). When the likelihood is evaluated via
-#' simulation (TMET or GHK), the same engine is used to approximate
-#' the required conditional probabilities.
+#' randomized probability integral transform (PIT) of Dunn and Smyth
+#' (1996). The conditional probabilities required for the PIT are
+#' approximated according to the fitted copula family and likelihood
+#' method. For Gaussian copula models fitted by TMET or GHK, the same
+#' simulation-based method is used in the residual computation. For
+#' Gaussian copula models fitted by CE, the required conditional
+#' probabilities are approximated by GHK. For Student--t copula models,
+#' the required conditional probabilities are approximated by GHK.
 #'
 #' @param object A fitted model object of class \code{"gctsc"},
 #'   as returned by \code{\link{gctsc}}.
@@ -22,11 +26,11 @@
 #' }
 #'
 #' @details
-#' For observation \eqn{y_t}, let \eqn{F_t(y_t^-)} and \eqn{F_t(y_t)}
-#' denote the conditional CDF evaluated at \eqn{y_t - 1} and \eqn{y_t},
+#' For observation \eqn{y_t}, let \eqn{F_t(y_t^-|y)} and \eqn{F_t(y_t|y)}
+#' denote the conditional CDF evaluated at \eqn{y_t - 1} and \eqn{y_t} given past observations,
 #' respectively. The PIT value is computed as
 #' \deqn{
-#' e_t = F_t(y_t^-) + u_t \{F_t(y_t) - F_t(y_t^-)\},
+#' e_t = F_t(y_t^-|y) + u_t \{F_t(y_t|y) - F_t(y_t^-|y)\},
 #' }
 #' where \eqn{u_t \sim \mathrm{Uniform}(0,1)}.
 #'
@@ -39,19 +43,18 @@
 #'Student--t distribution.
 #' 
 #' @references
-#' Dunn, P. K. and Smyth, G. K. (1996),
-#' Randomized quantile residuals,
-#' \emph{Journal of Computational and Graphical Statistics},
-#' \strong{5}(3): 236--244.
+#' Nguyen, Q. N. and De Oliveira, V. (2026), Approximating Gaussian Copula
+#' Models for Count Time Series: Connecting the Distributional Transform and
+#' a Continuous Extension, \emph{Journal of Applied Statistics},
+#' \strong{53}: 1--22.
 #'
-#' Nguyen, Q. N., and De Oliveira, V. (2026),
-#' Likelihood Inference in Gaussian Copula Models for Count Time Series
-#' via Minimax Exponential Tilting,
-#' \emph{Computational Statistics and Data Analysis}.
+#' Nguyen, Q. N. and De Oliveira, V. (2026), Likelihood Inference in Gaussian
+#' Copula Models for Count Time Series via Minimax Exponential Tilting,
+#' \emph{Computational Statistics & Data Analysis}, \strong{218}: 108344.
 #'
-#' Nguyen, Q. N., and De Oliveira, V. (2026),
-#' Scalable Likelihood Inference for Student--\eqn{t} Copula Count Time Series,
-#' Manuscript in preparation.
+#' Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
+#' for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
+#' \strong{9}: 1--49.
 #'
 #' @examples
 #' # Simulate Poisson AR(1) data under a Gaussian copula
@@ -63,7 +66,7 @@
 #'
 #' fit <- gctsc(
 #'   y ~ 1,
-#'   data = data.frame(y = y),
+#'   data = data.frame(y),
 #'   marginal = poisson.marg(),
 #'   cormat = arma.cormat(1, 0),
 #'   family = "gaussian",
@@ -74,63 +77,91 @@
 #' res <- residuals(fit)
 #' hist(res$residuals, main = "Randomized Quantile Residuals")
 #' hist(res$pit, main = "PIT Histogram")
-#'
-#' @importFrom stats resid
+#' @seealso \code{\link{gctsc}}, \code{\link{sim_gctsc}},
+#'   \code{\link{pmvn}}, \code{\link{pmvt}}, \code{\link{predict.gctsc}}
+#' @method residuals gctsc
 #' @export
 residuals.gctsc <- function(object, ...) {
-  is.int <- TRUE
-
-  if (is.int && exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-    seed.keep <- get(".Random.seed", envir = .GlobalEnv)
-    on.exit(assign(".Random.seed", seed.keep, envir = .GlobalEnv))
-    set.seed(object$options$seed)
+  fn <- "residuals.gctsc"
+  
+  if (!inherits(object, "gctsc")) {
+    stop(sprintf("%s(): object must be of class 'gctsc'.", fn),
+         call. = FALSE)
   }
-
+  
+  seed <- object$options$seed
+  
+  if (!is.null(seed)) {
+    has_seed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    
+    if (has_seed) {
+      seed.keep <- get(".Random.seed", envir = .GlobalEnv)
+      on.exit(assign(".Random.seed", seed.keep, envir = .GlobalEnv),
+              add = TRUE)
+    } else {
+      on.exit(rm(".Random.seed", envir = .GlobalEnv), add = TRUE)
+    }
+    
+    set.seed(seed)
+  }
+  
   bounds <- object$marginal$bounds
   family <- object$family
-  ab <- bounds(object$y,
-               object$x,
-               object$coef[object$ibeta], family = family, df= object$df)
   
-  
-  method <- object$method
-  
-  
-  cfg <- list(
-    method = method,
-    arg2 = if (is.int) object$options$M else object$c,
-    ret_llk = FALSE,
-    pm = object$pm,
-    od=object$cormat$od,
-    QMC=object$QMC,
-    df= object$df
+  ab <- bounds(
+    object$y,
+    object$x,
+    object$coef[object$ibeta],
+    family = family,
+    df = object$df
   )
-
-
-  tau <- object$coef[object$itau]
-  QMC <- object$QMC
-  res <- llk.fn(cfg, ab, tau,family )
-
-  u <- runif(object$n)
-  pit_vals <- rep(NA, object$n)
-  res_vals <- rep(NA, object$n)
-
-
-  if (family =="gaussian"){
-      pit_vals <- res[,2] - u * ( res[,2] -res[,1])
-      res_vals <- qnorm(pit_vals)
-   
-  } else {
-    if (is.int) {
-      pit_vals <- res[,2] - u * ( res[,2] -res[,1])
-      res_vals <- qt(pit_vals,df = object$df)
-    }
+  
+  res_method <- object$method
+  
+  if (family == "gaussian" && res_method == "CE") {
+    res_method <- "GHK"
   }
   
-  out <- list(residuals = res_vals, pit = pit_vals)
+  if (family == "t") {
+    res_method <- "GHK"
+  }
+  
+  cfg <- list(
+    method = res_method,
+    arg2 = max(object$options$M),
+    ret_llk = FALSE,
+    pm = object$pm,
+    od = object$cormat$od,
+    QMC = object$QMC,
+    df = object$df
+  )
+  
+  tau <- object$coef[object$itau]
+  
+  res <- llk.fn(cfg, ab, tau, family)$summary_stats
+  
+  u <- stats::runif(object$n)
+  
+  pit_vals <- res[, 1] + u * (res[, 2] - res[, 1])
+  
+  pit_vals <- pmin(pmax(pit_vals, .Machine$double.eps),
+                   1 - .Machine$double.eps)
+  
+  if (family == "gaussian") {
+    res_vals <- stats::qnorm(pit_vals)
+  } else {
+    res_vals <- stats::qt(pit_vals, df = object$df)
+  }
+  
+  out <- list(
+    residuals = res_vals,
+    pit = pit_vals
+  )
+  
   class(out) <- "gctsc.residuals"
-  return(out)
+  out
 }
+
 
 
 #' @title Diagnostic Plots for Fitted Copula Count Time Series Models
@@ -169,7 +200,8 @@ residuals.gctsc <- function(object, ...) {
 #' @seealso \code{\link{residuals.gctsc}}
 #' @export
 #'
-#' @return This function is called for its side effects and returns \code{invisible()}.
+#' @return Invisibly returns \code{NULL}. The function is called for its
+#'   side effect of producing diagnostic plots.
 #' @examples
 #' # Simulate data from a Poisson AR(1) model
 #' set.seed(123)
@@ -180,7 +212,7 @@ residuals.gctsc <- function(object, ...) {
 #' y <- sim_poisson(mu = mu, tau = phi, arma_order = arma_order, nsim = n)$y
 #'
 #' # Fit the model using the CE method
-#' fit <- gctsc(y~1,
+#' fit <- gctsc(y~1, data = data.frame(y),
 #'   marginal = poisson.marg(link = "identity", lambda.lower = 0),
 #'   cormat = arma.cormat(p = 1, q = 0), family ="gaussian",
 #'   method = "CE",
@@ -194,13 +226,10 @@ residuals.gctsc <- function(object, ...) {
 
 #' @seealso \code{\link{residuals.gctsc}} for computing the residuals used in the plots.
 #'
+#' @method plot gctsc
 #' @export
-plot.gctsc <- function(x,
-                       caption = rep("", 5),
-                       main = rep("", 5),
-                       level = 0.95,
-                       col.lines = "gray",
-                       ...) {
+plot.gctsc <- function(x,caption = rep("", 5),main = rep("", 5),
+                       level = 0.95,col.lines = "gray", ...) {
   
   if (!inherits(x, "gctsc"))
     stop("plot.gctsc() is only for objects of class 'gctsc'.")
@@ -222,10 +251,8 @@ plot.gctsc <- function(x,
   
   ## 1. Time series of residuals
   if (!has_res_na) {
-    plot(res, type = "l",
-         xlab = "Time",
-         ylab = "Quantile residual",
-         main = main[1], ...)
+    plot(res, type = "l",xlab = "Time",
+         ylab = "Quantile residual", main = main[1], ...)
     abline(h = 0, col = col.lines)
     mtext(caption[1], 3, 0.25)
   } else {
@@ -235,26 +262,41 @@ plot.gctsc <- function(x,
   ## 2. Q-Q plot
   if (!has_res_na) {
     if (family == "t") {
-      df <- object$df
-      n  <- length(res)
       
+      df  <- object$df                 # t degrees of freedom
+      B   <- 1000                      # number of Monte Carlo replicates
+      n   <- length(res)
+      
+      # 1. Theoretical quantiles
       p  <- ppoints(n)
-      theo <- qt(p, df = df)
+      tq <- qt(p, df = df)
+      
+      # 2. Simulate t samples to estimate the 2.5% and 97.5% envelopes
+      sim_q <- replicate(B, sort(rt(n, df = df)))
+      lo <- apply(sim_q, 1, quantile, probs = 0.025)
+      hi <- apply(sim_q, 1, quantile, probs = 0.975)
+      
+      # 3. Sort residuals
       res_sorted <- sort(res)
       
-      plot(theo, res_sorted,
-           xlab = "Theoretical t quantiles",
-           ylab = "Sorted residuals",
-           main = main[2], ...)
-      abline(0, 1, col = col.lines)
+      # 4. Plot QQ with envelope
+      plot(tq, res_sorted, pch = 19, col = "gray90",
+           main = "QQ Plot vs t-distribution with 95% envelope",
+           xlab = "t quantiles", ylab = "Sorted residuals")
+      
+      # envelope as gray ribbon
+      polygon(c(tq, rev(tq)), c(lo, rev(hi)),
+              col = adjustcolor("gray90", 0.6), border = NA)
+      
+      points(tq, res_sorted, pch = 5, col = "gray20", cex = 0.5, lwd = 0.5)
+      abline(0, 1, col = "gray70", lwd = 2)
+      
       
     } else {
-      qqnorm(res,
-             main = main[2],
-             ylab = "Sorted residuals",
-             ...)
-      qqline(res, col = col.lines)
+      car::qqPlot(res, envelope = level, grid = FALSE,xlab = "Normal quantiles", 
+                  ylab = "Sorted quantile residuals", col.lines = col.lines)
     }
+
     mtext(caption[2], 3, 0.25)
   } else {
     frame()
@@ -262,14 +304,8 @@ plot.gctsc <- function(x,
   
   ## 3. PIT histogram
   if (!has_pit_na) {
-    hist(pit,
-         breaks = 20,
-         col = "skyblue",
-         border = "white",
-         freq = FALSE,
-         xlim = c(0, 1),
-         main = main[3],
-         xlab = "PIT values")
+    hist(pit, breaks = 20, col = "skyblue", border = "white",freq = FALSE,
+         xlim = c(0, 1),main = main[3], xlab = "PIT values")
     abline(h = 1, col = col.lines, lty = 2)
     mtext(caption[3], 3, 0.25)
   } else {
@@ -278,11 +314,7 @@ plot.gctsc <- function(x,
   
   ## 4. ACF
   if (!has_res_na) {
-    acf(res,
-        main = main[4],
-        ci.col = col.lines,
-        na.action = na.pass,
-        plot = TRUE)
+    acf(res, main = main[4],ci.col = col.lines, na.action = na.pass,plot = TRUE)
     mtext(caption[4], 3, 0.25)
   } else {
     frame()
@@ -290,11 +322,7 @@ plot.gctsc <- function(x,
   
   ## 5. PACF
   if (!has_res_na) {
-    pacf(res,
-         main = main[5],
-         ci.col = col.lines,
-         na.action = na.pass,
-         plot = TRUE)
+    pacf(res,main = main[5],ci.col = col.lines,na.action = na.pass,plot = TRUE)
     mtext(caption[5], 3, 0.25)
   } else {
     frame()
@@ -305,3 +333,5 @@ plot.gctsc <- function(x,
   
   invisible(NULL)
 }
+
+

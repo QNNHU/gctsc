@@ -1,0 +1,97 @@
+#' Approximate Student--t Copula Log-Likelihood
+#'
+#' Computes an approximate log-likelihood for a Student--\eqn{t} copula
+#' count time series model from latent lower and upper truncation
+#' bounds. The approximation method is selected through the argument
+#' \code{method}.
+#'
+#' The package currently supports three likelihood approximations:
+#' continuous extension (CE), Geweke--Hajivassiliou--Keane simulation
+#' (GHK), and Time Series Minimax Exponential Tilting (TMET).
+#'
+#' @param lower Numeric vector of length \code{n} giving the lower
+#'   truncation bounds of the latent variables.
+#' @param upper Numeric vector of length \code{n} giving the upper
+#'   truncation bounds of the latent variables.
+#' @param tau Numeric vector of ARMA dependence parameters ordered as
+#'   \code{c(phi_1, ..., phi_p, theta_1, ..., theta_q)}.
+#' @param od Integer vector \code{c(p, q)} specifying the AR and MA
+#'   orders of the latent ARMA process.
+#' @param method Character string specifying the likelihood
+#'   approximation method. Must be one of \code{"CE"},
+#'   \code{"GHK"}, or \code{"TMET"}.
+#' @param c Smoothing parameter for the CE approximation. Used only when
+#'   \code{method = "CE"}. Default is \code{0.5}.
+#' @param pm Integer specifying the number of past lags used to
+#'   approximate an ARMA(\eqn{p,q}) process by a finite-order AR
+#'   representation. Used only when \code{method = "TMET"}.
+#' @param M Positive integer specifying the number of Monte Carlo or
+#'   quasi-Monte Carlo samples. Used by the simulation-based methods
+#'   \code{"GHK"} and \code{"TMET"}.
+#' @param QMC Logical; if \code{TRUE} (default), quasi-Monte Carlo
+#'   integration is used when applicable. Otherwise, standard Monte
+#'   Carlo sampling is used.
+#' @param ret_llk Logical; if \code{TRUE} (default), returns the
+#'   approximate log-likelihood. If \code{FALSE}, method-specific
+#'   internal quantities are returned for diagnostic or research use.
+#' @param df Degrees of freedom of the Student--\eqn{t} copula. Must be
+#'   greater than 2.
+#'
+#' @return A numeric scalar giving the approximate log-likelihood. If
+#'   \code{ret_llk = FALSE}, method-specific diagnostic output is
+#'   returned.
+#'
+#' @details
+#' The function \code{pmvt()} provides a unified interface for
+#' Student--\eqn{t} copula likelihood approximation. The argument
+#' \code{method} selects among:
+#' \itemize{
+#'   \item \code{"CE"}: continuous extension approximation,
+#'   \item \code{"GHK"}: sequential importance sampling via the GHK simulator,
+#'   \item \code{"TMET"}: minimax exponential tilting approximation.
+#' }
+#' The arguments \code{c}, \code{pm}, \code{M}, and \code{QMC} are used
+#' only by the methods to which they apply.
+#'
+#' @seealso \code{\link{pmvn}}, \code{\link{gctsc}},
+#'   \code{\link{sim_poisson}}
+#'
+#' @references
+#'Nguyen, Q. N. and De Oliveira, V. (2026). Scalable Likelihood Inference for Student–t Copula Count Time Series, \emph{Stats}, \strong{9}: 1--49.
+#'
+#' @examples
+#' mu <- 10
+#' tau <- 0.2
+#' arma_order <- c(1, 0)
+#' df <- 8
+#'
+#' sim_data <- sim_poisson(mu = mu, tau = tau, arma_order = arma_order,
+#'                         nsim = 200, family = "t", df = df, seed = 1)
+#' y <- sim_data$y
+#'
+#' lower <- qt(ppois(y - 1, lambda = mu), df = df)
+#' upper <- qt(ppois(y, lambda = mu), df = df)
+#'
+#' ## Continuous extension
+#' pmvt(lower, upper, tau = tau, od = arma_order, method = "CE", c = 0.5, df = df)
+#'
+#' ## GHK approximation
+#' pmvt(lower, upper, tau = tau, od = arma_order, method = "GHK", M = 200, df = df)
+#'
+#' ## TMET approximation
+#' pmvt(lower, upper, tau = tau, od = arma_order, method = "TMET", pm = 30, M = 200, df = df)
+#' @export
+pmvt <- function(lower, upper, tau, od, method = c("CE", "GHK", "TMET"), c = 0.5,
+                 pm = 30, M = 1000, QMC = TRUE, ret_llk = TRUE, df) {
+  
+  method <- match.arg(method)
+  
+  switch(
+    method,
+    CE = sum(ce_core(lower, upper, tau, od, family = "t", c = c, ret_llk = ret_llk, df = df)),
+    GHK = sum(ghk_core(lower, upper, tau, od, family = "t", M = M,QMC = QMC,
+                   ret_llk = ret_llk, df = df)),
+    TMET = sum(tmet_core(lower, upper, tau, od, family = "t", pm = pm, M = M,
+                     QMC = QMC,ret_llk = ret_llk,df = df))
+  )
+}

@@ -1,0 +1,39 @@
+#' Worked Examples Included with the Package
+#'
+#' @description
+#' The \pkg{gctsc} package includes additional worked examples in the
+#' installed \file{examples/} directory.
+#'
+#' @details
+#' Worked examples are installed with the package in the
+#' \file{examples/} directory. They are organized into the subfolders
+#' \file{gaussian/} and \file{student_t/}, corresponding to the two
+#' copula families supported by the package.
+#'
+#' The top-level example directory can be located with
+#' \code{system.file("examples", package = "gctsc")}.
+#'
+#' To list the available Gaussian examples, use
+#' \preformatted{
+#' dir(file.path(system.file("examples", package = "gctsc"), "gaussian"))
+#' }
+#'
+#' To list the available Student-t examples, use
+#' \preformatted{
+#' dir(file.path(system.file("examples", package = "gctsc"), "student_t"))
+#' }
+#'
+#' To inspect the contents of one of the example scripts without
+#' running it, use:
+#' \preformatted{
+#' f <- file.path(system.file("examples", package = "gctsc"),
+#'                "gaussian", "poisson.R")
+#' cat(readLines(f), sep = "\n")
+#' }
+#'
+#' @examples
+#' exdir <- system.file("examples", package = "gctsc")
+#' dir(exdir)
+#'
+#' @name gctsc-examples
+NULL

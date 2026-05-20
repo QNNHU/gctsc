@@ -77,7 +77,7 @@ lm_sparse_solver <- function(x0, jac, Condmv_Obj, a, b, nu,
   
   for (k in seq_len(maxit)) {
     gj <- grad_jac_psiT(x, Condmv_Obj, a, b, nu, deriv="both")
-    f  <- gj$grad      # gradient vector (∇Φ = Jᵀψ)
+    f  <- gj$grad      # gradient vector 
     J  <- gj$jac       # Jacobian (sparse)
     
     

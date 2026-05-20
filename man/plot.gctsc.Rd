@@ -30,7 +30,8 @@ for the plots.}
 \value{
 Invisibly returns \code{NULL}.
 
-This function is called for its side effects and returns \code{invisible()}.
+Invisibly returns \code{NULL}. The function is called for its
+side effect of producing diagnostic plots.
 }
 \description{
 Produces diagnostic plots for a fitted Gaussian or Student--t copula
@@ -63,7 +64,7 @@ arma_order <- c(1, 0)
 y <- sim_poisson(mu = mu, tau = phi, arma_order = arma_order, nsim = n)$y
 
 # Fit the model using the CE method
-fit <- gctsc(y~1,
+fit <- gctsc(y~1, data = data.frame(y),
   marginal = poisson.marg(link = "identity", lambda.lower = 0),
   cormat = arma.cormat(p = 1, q = 0), family ="gaussian",
   method = "CE",

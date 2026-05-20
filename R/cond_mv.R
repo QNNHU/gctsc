@@ -1,122 +1,118 @@
 #' @keywords internal
 #' @noRd
-cond_mv_ghk <- function(n, tau, od) {
-  .p <- od[1]
-  .q <- od[2]
-  iar <- if ( .p ) 1:.p else NULL
-  ima <- if ( .q ) (.p+1):(.p+.q) else NULL
-  phi <- tau[iar]
-  theta<-tau[ima]
+cond_mv_base <- function(n, tau, od, fn = "cond_mv_base") {
+  p0 <- od[1]
+  q0 <- od[2]
   
-  # Use default (p = 1, q = 1) if either AR or MA order is zero
-  if(.p==0){
-    p<- 1
-    phi <-0
-  } else {p<-.p}
-  if(.q==0){
-    q<-1
-    theta<-0
-  } else{q <- .q}
+  if (length(tau) != sum(od)) {
+    stop(sprintf("%s(): length of 'tau' must match sum(od).", fn),
+         call. = FALSE)
+  }
   
-  m = max(p,q)
-  Tau <- list(phi=phi, theta=theta)
+  iar <- if (p0 > 0) seq_len(p0) else integer(0)
+  ima <- if (q0 > 0) (p0 + 1L):(p0 + q0) else integer(0)
+  
+  phi <- if (p0 > 0) tau[iar] else 0
+  theta <- if (q0 > 0) tau[ima] else 0
+  
+  # Innovations algorithm assumes p >= 1 and q >= 1.
+  p <- if (p0 == 0) 1L else p0
+  q <- if (q0 == 0) 1L else q0
+  
+  m <- max(p, q)
+  
+  Tau <- list(phi = phi, theta = theta)
   sigma2 <- 1 / sum(ma.inf(Tau)^2)
-  
   gamma <- aacvf(Tau, n - 1)
   
-  theta_r <- c(1, theta, numeric(n))
+  model <- list(
+    phi = phi,
+    theta_r = c(1, theta, numeric(n)),
+    p = p,
+    q = q,
+    m = m,
+    sigma2 = sigma2,
+    gamma = gamma,
+    n = n
+  )
   
-  model <- list(phi = phi, theta_r = theta_r, p = p, q = q, m = m,
-                sigma2 = sigma2, gamma = gamma, n = n)
   out_cpp <- compute_cond_var(gamma, model)
-  v <- out_cpp$v
-  cond_var <- v*sigma2
-  
-  ##### theta_tk is saved to compute the conditional mean
-  Theta <- out_cpp$Theta
   
   list(
-    cond_var = cond_var,
-    Theta = Theta,
-    m =m,
+    cond_var = out_cpp$v * sigma2,
+    Theta = out_cpp$Theta,
     phi = phi,
-    p = .p,
-    q = .q
+    p = p0,
+    q = q0,
+    m = m,
+    Tau = Tau,
+    gamma = gamma
   )
 }
 
+#' @keywords internal
+#' @noRd
+cond_mv_ghk <- function(n, tau, od) {
+  base <- cond_mv_base(n, tau, od, fn = "cond_mv_ghk")
+  
+  list(
+    cond_var = base$cond_var,
+    Theta = base$Theta,
+    m = base$m,
+    phi = base$phi,
+    p = base$p,
+    q = base$q
+  )
+}
 
 
 #' @keywords internal
 #' @noRd
 cond_mv_tmet <- function(NN, tau, od) {
   n <- nrow(NN)
-  if (!all(NN[, 1] == 1:n)) stop("Unexpected NN: first col is not 1:n\n")
-  pm <- ncol(NN) - 1
-  .p <- od[1]
-  .q <- od[2]
-  iar <- if ( .p ) 1:.p else NULL
-  ima <- if ( .q ) (.p+1):(.p+.q) else NULL
-  phi <- tau[iar]
-  theta<-tau[ima]
   
-  ### innovation algorithm assume p>=1, q>=1
-  if(.p==0){
-    p<- 1
-    phi <-0
-  } else {p<-.p}
-  if(.q==0){
-    q<-1
-    theta<-0
-  } else{q <- .q}
+  if (!all(NN[, 1] == seq_len(n))) {
+    stop("cond_mv_tmet(): unexpected NN; first column must be 1:n.",
+         call. = FALSE)
+  }
   
-  m = max(p,q)
-  Tau <- list(phi=phi, theta=theta)
-  sigma2 <- 1 / sum(ma.inf(Tau)^2)
+  pm <- ncol(NN) - 1L
   
-  gamma <- aacvf(Tau, n - 1)
+  base <- cond_mv_base(n, tau, od, fn = "cond_mv_tmet")
   
-  theta_r <- c(1, theta, numeric(n))
+  arma_blup_coef <- -ar.inf(base$Tau, pm)[-1]
   
-  model <- list(phi = phi, theta_r = theta_r, p = p, q = q, m = m,
-                sigma2 = sigma2, gamma = gamma, n = n)
-  out_cpp <- compute_cond_var(gamma, model)
-  v <- out_cpp$v
-  cond_var <- v*sigma2
+  cond_mean_coeff <- matrix(0, nrow = n, ncol = pm)
   
-  ##### theta_tk is saved to compute the conditional mean
-  Theta <- out_cpp$Theta
-  arma_blup_coef = - (ar.inf(Tau,pm)[-1])
-  
-  cond_mean_coeff <- matrix(0, n, pm)
-  # first loop: i from 2:(pm-1)
-  if(pm > 2){
-    DL <- durbin_levinson(gamma, pm,cond_var[-1])
-    for (i in 2:(pm - 1)) {
-      cond_mean_coeff[i, 1:(i - 1)] <- DL[(i-1),1:(i - 1)]
+  if (pm > 2L) {
+    DL <- durbin_levinson(base$gamma, pm, base$cond_var[-1])
+    
+    for (i in 2:(pm - 1L)) {
+      cond_mean_coeff[i, seq_len(i - 1L)] <- DL[i - 1L, seq_len(i - 1L)]
     }
   }
   
-  # Second loop: i from (pm - 1) to n
-  for (i in max(2, pm):n) {
-    cond_mean_coeff[i, 1:pm] <- arma_blup_coef[1:pm]
-  }
+  start_i <- max(2L, pm)
   
+  if (start_i <= n) {
+    for (i in start_i:n) {
+      cond_mean_coeff[i, seq_len(pm)] <- arma_blup_coef[seq_len(pm)]
+    }
+  }
   
   B <- sparse_B(NN, cond_mean_coeff, n, pm)
   
   list(
-    cond_var = cond_var,
+    cond_var = base$cond_var,
     cond_mean_coeff = cond_mean_coeff,
     B = B,
     NN = NN,
-    Theta = Theta,
-    phi = phi,
-    p = .p,
-    q = .q,
-    m = m
+    Theta = base$Theta,
+    phi = base$phi,
+    p = base$p,
+    q = base$q,
+    m = base$m
   )
-  
 }
 
 #' @keywords internal

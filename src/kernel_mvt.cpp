@@ -14,7 +14,7 @@ using namespace std;
 
  //' @noRd
  // [[Rcpp::export]]
-List ptmvt_tmet(List args)
+NumericVector ptmvt_tmet(List args)
  {
    NumericVector a = args["a"];
    NumericVector b = args["b"];
@@ -26,12 +26,12 @@ List ptmvt_tmet(List args)
    int m = as<int>(args["m"]);
    double nu = args["df"];
    int n = a.size();
-   double eta = delta[n - 1];
+   double kap = delta[n - 1];
    NumericMatrix Theta = args["Theta"];
    bool QMC = args.containsElementNamed("QMC") ? as<bool>(args["QMC"]) : true;
    int N = M / 2;
    M = 2 * N;
-   double phi_at_neg_eta = gauss_utils::normalCDF(-eta);
+   double phi_at_neg_kap = gauss_utils::normalCDF(-kap);
    double exponent, p_L;
    double *lw = new double[M];
    double *MC_grid = new double[(n+1) * N], *MC_rnd = new double[n+1];
@@ -42,9 +42,10 @@ List ptmvt_tmet(List args)
    double *lpnorm_diff = new double[M], *linner_prod = new double[M];
    int *prime = new int[n+1];
    double *mu_all = new double[n * M];
-   double *log_lkratio_r = new double[M];
-   double *r = new double[M];
-   
+   double *log_lkratio_w = new double[M];
+   double *w = new double[M];
+   NumericVector lk(n);
+   double prev_log_est = 0.0;
    
    fill(lpnorm_diff, lpnorm_diff + M, 0.0);
    fill(linner_prod, linner_prod + M, 0.0);
@@ -63,11 +64,11 @@ List ptmvt_tmet(List args)
    PutRNGstate();
    
    transform(MC_samp + n * M, MC_samp + (n + 1) * M, cdf_MC_samp,
-             [&phi_at_neg_eta](double x){return phi_at_neg_eta + x * (1.0 - phi_at_neg_eta);});
-   gauss_utils::norm_inv_vec(M, cdf_MC_samp, r);
+             [&phi_at_neg_kap](double x){return phi_at_neg_kap + x * (1.0 - phi_at_neg_kap);});
+   gauss_utils::norm_inv_vec(M, cdf_MC_samp, w);
    for(int j = 0; j < M; j++){
-     r[j] += eta;
-     log_lkratio_r[j] = (nu - 1) * log(r[j]) - eta * r[j];
+     w[j] += kap;
+     log_lkratio_w[j] = (nu - 1) * log(w[j]) - kap * w[j];
      
    }
 
@@ -75,8 +76,8 @@ List ptmvt_tmet(List args)
      double* mu = mu_all + i * M;
      std::fill(mu, mu + M, 0.0);
      for(int j = 0; j < M; j++){
-       a_til[j] =  a[i] * r[j]/ sqrt(nu);
-       b_til[j] = b[i] * r[j]/ sqrt(nu);
+       a_til[j] =  a[i] * w[j]/ sqrt(nu);
+       b_til[j] = b[i] * w[j]/ sqrt(nu);
      }
      if(i > 0) {
        compute_conditional_mean(i, M, m,q,  phi, Theta, mu,mu_all, Z);
@@ -100,32 +101,48 @@ List ptmvt_tmet(List args)
        lpnorm_diff[j] += lnNpr(a_til[j], b_til[j]);
        linner_prod[j] += (Z_i[j] - mu[j]) * delta_i / condSd[i];
      }
+     
+     int upto = std::min(i + 1, n - 1);
+  
+     
+     double delta_norm2 = inner_product( delta.begin(), delta.begin() + upto,
+                                         delta.begin(), 0.0
+     );
+     
+     
+     
+     double frac = static_cast<double>(i + 1) / static_cast<double>(n);
+     
+     for (int j = 0; j < M; j++) {lw[j] = -linner_prod[j] +lpnorm_diff[j] +
+         0.5 * delta_norm2 +frac * log_lkratio_w[j];
+     }
+     
+     exponent = *max_element(lw, lw + M);
+     for(int j = 0; j < M; j++)
+       lw[j] = exp(lw[j] - exponent);
+     
+     p_L= accumulate(lw, lw + M, 0.0) / M;
+     
+     double curr_log_est = exponent + log(p_L);
+     
+     lk[i] = curr_log_est - prev_log_est ;
+     
+     prev_log_est = curr_log_est;
+     
+     
+     
    }
    
-   double delta_norm2 = inner_product(delta.begin(), delta.end()-1, delta.begin(), 0.0);
-   
-   
-   for(int j = 0; j < M; j++)
-     lw[j] = -linner_prod[j] + lpnorm_diff[j] + 0.5 * delta_norm2 + log_lkratio_r[j];
 
-   exponent = *max_element(lw, lw + M);
-   for(int j = 0; j < M; j++)
-     lw[j] = exp(lw[j] - exponent);
-   
-   p_L= accumulate(lw, lw + M, 0.0) / M;
-   
    delete[] lw;
    delete[] MC_grid; delete[] MC_rnd; delete[] MC_samp;
    delete[] a_til; delete[] b_til;
    delete[] cdf_MC_samp; delete[] Z;
    delete[] lpnorm_diff; delete[] linner_prod; delete[] prime;
-   delete[] mu_all; delete[] r; delete[] log_lkratio_r;
+   delete[] mu_all; delete[] w; delete[] log_lkratio_w;
    
    
-   return List::create(
-     Named("p_L") = p_L,
-     Named("exponent") = exponent
-   );
+   return lk;
    
    
  }
@@ -134,7 +151,7 @@ List ptmvt_tmet(List args)
 
  //' @noRd
  // [[Rcpp::export]]
-List ptmvmn_ghk(List args)
+NumericVector ptmvmn_ghk(List args)
    {
      NumericVector a = args["a"];
      NumericVector b = args["b"];
@@ -161,7 +178,8 @@ List ptmvmn_ghk(List args)
      double * r = new double[M];
      double* mu_all = new double[n * M]; // Allocate once
      double p_L;
-
+     NumericVector lk(n);
+     double prev_log_est = 0.0;
   
      fill(lpnorm_diff, lpnorm_diff + M, 0.0);
   
@@ -210,17 +228,25 @@ List ptmvmn_ghk(List args)
          Z_i[j] = Z_i[j] * condSd[i] + mu[j];
          lpnorm_diff[j] += lnNpr(a_std[j], b_std[j]);
        }
+       
+       for(int j = 0; j < M; j++)
+         lw[j] =  lpnorm_diff[j] ;
+       
+       exponent = *max_element(lw, lw + M);
+       for(int j = 0; j < M; j++)
+         lw[j] = exp(lw[j] - exponent);
+       
+       p_L= accumulate(lw, lw + M, 0.0) / M;
+      
+       
+       double curr_log_est = exponent + log(p_L);
+       
+       lk[i] = curr_log_est - prev_log_est;
+       
+       prev_log_est = curr_log_est;
+       
      }
-     
-     
-     for(int j = 0; j < M; j++)
-       lw[j] =  lpnorm_diff[j] ;
-     
-     exponent = *max_element(lw, lw + M);
-     for(int j = 0; j < M; j++)
-       lw[j] = exp(lw[j] - exponent);
-     
-     p_L= accumulate(lw, lw + M, 0.0) / M;
+
      
      delete[] lw;
      delete[] MC_grid; delete[] MC_rnd; delete[] MC_samp;
@@ -229,20 +255,14 @@ List ptmvmn_ghk(List args)
      delete[] lpnorm_diff;  delete[] prime;
      delete[] mu_all;delete[] r;
   
-     return List::create(
-       Named("p_L") = p_L,
-       Named("exponent") = exponent
-
-     );
-  
-  
+    return lk;
    }
   
   
 
 //' @noRd
 // [[Rcpp::export]]
-List ptmvt_ghk(List args)
+NumericVector ptmvt_ghk(List args)
    {
      NumericVector a = args["a"];
      NumericVector b = args["b"];
@@ -269,7 +289,8 @@ List ptmvt_ghk(List args)
      double* mu_all = new double[n * M]; // Allocate once
      double *d = new double[M];        
      double p_L;
-  
+     NumericVector lk(n);
+     double prev_log_est = 0.0;
      
      fill(lpt_diff, lpt_diff + M, 0.0);
      
@@ -320,20 +341,26 @@ List ptmvt_ghk(List args)
          d[j] +=  (V_i[j] - mu[j])*(V_i[j] -mu[j])/(condSd[i]*condSd[i]);
        }
        
-  
+       for(int j = 0; j < M; j++)
+         lw[j] =  lpt_diff[j] ;
+       
+       
+       exponent = *max_element(lw, lw + M);
+       for(int j = 0; j < M; j++)
+         lw[j] = exp(lw[j] - exponent);
+       
+       p_L= accumulate(lw, lw + M, 0.0) / M;
+       
+       double curr_log_est = exponent + log(p_L);
+       
+       lk[i] = curr_log_est - prev_log_est;
+       
+       prev_log_est = curr_log_est;
        
      }
      
      
-     for(int j = 0; j < M; j++)
-       lw[j] =  lpt_diff[j] ;
-     
-     
-     exponent = *max_element(lw, lw + M);
-     for(int j = 0; j < M; j++)
-       lw[j] = exp(lw[j] - exponent);
-     
-     p_L= accumulate(lw, lw + M, 0.0) / M;
+
 
      delete[] lw;
      delete[] MC_grid; delete[] MC_rnd; delete[] MC_samp;
@@ -342,11 +369,7 @@ List ptmvt_ghk(List args)
      delete[] lpt_diff;  delete[] prime;
      delete[] mu_all;delete[] d;
      
-     return List::create(
-       Named("p_L") = p_L,
-       Named("exponent") = exponent
-
-     );
+     return lk;
      
      
    }

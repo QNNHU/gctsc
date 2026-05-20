@@ -4,26 +4,28 @@
 \alias{predict.gctsc}
 \title{One-Step-Ahead Predictive Distribution for Copula Count Time Series Models}
 \usage{
-\method{predict}{gctsc}(object, y_obs = NULL, X_test = NULL, ...)
+\method{predict}{gctsc}(object, newdata = NULL, y_max = NULL, k = 3, ...)
 }
 \arguments{
-\item{object}{A fitted model object of class \code{"gctsc"},
-as returned by \code{\link{gctsc}}.}
+\item{object}{A fitted model object of class \code{"gctsc"}, as returned by
+\code{\link{gctsc}}.}
 
-\item{y_obs}{Optional non-negative integer giving the observed value
-at the prediction time. If supplied, the Continuous Ranked Probability
-Score (CRPS) and Logarithmic Score (LOGS) are computed.}
+\item{newdata}{Optional one-row \code{data.frame} containing the covariate
+values at the prediction time point. The variables in \code{newdata}
+should match the variables used in the fitted model formula. If the fitted
+model is intercept-only, \code{newdata} may be omitted.
 
-\item{X_test}{Covariate values at the prediction time point.
-Can be provided as:
-\itemize{
-\item a named numeric vector whose names match the covariates
-used during model fitting, or
-\item a one-row \code{data.frame} or matrix with matching column names.
-}
-If the fitted model is intercept-only, \code{X_test} may be omitted,
-in which case the intercept is set to 1 automatically.
-An error is raised if more than one row is supplied.}
+If the observed response at the prediction time is available, it may also
+be included in \code{newdata} using the same response variable name as in
+the fitted model. In that case, CRPS and LOGS are computed and returned.}
+
+\item{y_max}{Optional nonnegative integer specifying the largest count value
+included in the predictive grid \code{0:y_max}. If \code{NULL}, \code{y_max}
+is selected automatically using \code{ceiling(max(y) + k * sd(y))}, where
+\code{y} is the fitted response series.}
+
+\item{k}{Nonnegative numeric multiplier used to choose \code{y_max} when
+\code{y_max = NULL}. The default is \code{k = 3}.}
 
 \item{...}{Ignored. Included for S3 method compatibility.}
 }
@@ -34,62 +36,92 @@ A list containing:
 \item \code{median}: Predictive median.
 \item \code{mode}: Predictive mode.
 \item \code{variance}: Predictive variance.
-\item \code{p_y}: Predictive probability mass function over
-\code{0:y_max}.
-\item \code{lower}, \code{upper}: Bounds of the 95\\% predictive interval.
-\item \code{CRPS}: Continuous Ranked Probability Score
-(if \code{y_obs} is provided).
-\item \code{LOGS}: Logarithmic Score
-(if \code{y_obs} is provided).
+\item \code{p_y}: Predictive probability mass function evaluated on
+\code{y_grid}.
+\item \code{y_grid}: Count grid \code{0:y_max} over which the predictive
+distribution is evaluated.
+\item \code{lower}, \code{upper}: Lower and upper endpoints of the 95\\%
+predictive interval.
+\item \code{CRPS}: Continuous Ranked Probability Score, returned only if
+the observed response is supplied in \code{newdata}.
+\item \code{LOGS}: Logarithmic Score, returned only if the observed
+response is supplied in \code{newdata}.
+\item \code{y_true}: Observed response value, returned only if supplied in
+\code{newdata}.
 }
 }
 \description{
 Computes the one-step-ahead predictive distribution for a fitted
 Gaussian or Student--t copula count time series model.
 
-The predictive probability mass function is evaluated using the
-estimation method stored in the fitted object (TMET or GHK).
-Summary statistics of the predictive distribution are returned,
-and optional scoring rules are computed if the observed value is supplied.
+The predictive probability mass function is evaluated over the grid
+\code{0:y_max}. If \code{y_max} is not supplied, it is chosen automatically
+from the fitted response values as
+\code{ceiling(max(y) + k * sd(y))}. Summary statistics of the predictive
+distribution are returned. If the observed response is included in
+\code{newdata}, the Continuous Ranked Probability Score (CRPS) and
+Logarithmic Score (LOGS) are also computed.
 }
 \details{
-The predictive distribution integrates over the latent copula
-dependence structure specified in the fitted model. For Gaussian
-copulas, multivariate normal rectangle probabilities are evaluated;
-for Student--t copulas, multivariate t rectangle probabilities are used.
+The function constructs prediction design matrices from the stored model
+terms using \code{\link[stats]{model.matrix}}. Thus the same formula
+convention used in model fitting is used for prediction, including automatic
+intercept handling and factor-variable expansion.
+
+For zero-inflated marginals, \code{newdata} is used to construct both the
+mean-component design matrix and the zero-inflation design matrix. The
+column names of the new design matrices must match those from the fitted
+model.
+
+The predictive distribution is computed using the copula family and
+approximation method stored in the fitted object. For Gaussian copulas,
+multivariate normal rectangle probabilities are used. For Student--t
+copulas, multivariate t rectangle probabilities are used.
+
+If the observed response is included in \code{newdata}, it must be a single
+nonnegative integer count and should not exceed \code{y_max}.
 }
 \examples{
 # Simulate Poisson AR(1) data
 set.seed(1)
-y_sim <- sim_poisson(mu = 10, tau = 0.2,
-                     arma_order = c(1, 0),
-                     nsim = 1000,
-                     family = "gaussian")$y
+y_sim <- sim_poisson(
+  mu = 10,
+  tau = 0.2,
+  arma_order = c(1, 0),
+  nsim = 200,
+  family = "gaussian"
+)$y
+
+dat <- data.frame(y = y_sim)
 
 # Fit Gaussian copula model
 fit <- gctsc(
-  y ~ 1,
-  data = data.frame(y = y_sim),
-  marginal = poisson.marg(lambda.lower = 0),
+  formula = y ~ 1,
+  data = dat,
+  marginal = poisson.marg(link = "log"),
   cormat = arma.cormat(p = 1, q = 0),
-  method = "CE",
+  method = "GHK",
   family = "gaussian",
   options = gctsc.opts(M = 1000, seed = 42)
 )
 
-# One-step-ahead prediction
-predict(fit)
+# One-step-ahead prediction for an intercept-only model
+pred <- predict(fit, y_max = 30)
+
+# If the future observed value is available, include it in newdata
+pred_score <- predict(fit, newdata = data.frame(y = 8), y_max = 30)
 
 }
 \references{
-Nguyen, Q. N., & De Oliveira, V. (2026). Likelihood Inference in Gaussian Copula Models for Count Time Series
-via Minimax Exponential Tilting
-\emph{Journal of Computational Statistics and Data Analysis}.
+Nguyen, Q. N. and De Oliveira, V. (2026), Likelihood Inference in Gaussian
+Copula Models for Count Time Series via Minimax Exponential Tilting,
+\emph{Computational Statistics & Data Analysis}, \strong{218}: 108344.
 
-Nguyen, Q. N., & De Oliveira, V. (2026).
-Scalable Likelihood Inference for Student--\eqn{t} Copula Count Time Series.
-Manuscript in preparation.
+Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
+for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
+\strong{9}: 1--49.
 }
 \seealso{
-\code{\link{gctsc}}, \code{\link{arma.cormat}}
+\code{\link{gctsc}}, \code{\link{arma.cormat}},
+\code{\link{gctsc.opts}}
 }

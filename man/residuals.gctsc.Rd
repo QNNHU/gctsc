@@ -24,17 +24,21 @@ Computes randomized quantile residuals for a fitted Gaussian or
 Student--t copula count time series model.
 
 For discrete responses, residuals are constructed using the
-randomized probability integral transform (PIT) as proposed by
-Dunn and Smyth (1996). When the likelihood is evaluated via
-simulation (TMET or GHK), the same engine is used to approximate
-the required conditional probabilities.
+randomized probability integral transform (PIT) of Dunn and Smyth
+(1996). The conditional probabilities required for the PIT are
+approximated according to the fitted copula family and likelihood
+method. For Gaussian copula models fitted by TMET or GHK, the same
+simulation-based method is used in the residual computation. For
+Gaussian copula models fitted by CE, the required conditional
+probabilities are approximated by GHK. For Student--t copula models,
+the required conditional probabilities are approximated by GHK.
 }
 \details{
-For observation \eqn{y_t}, let \eqn{F_t(y_t^-)} and \eqn{F_t(y_t)}
-denote the conditional CDF evaluated at \eqn{y_t - 1} and \eqn{y_t},
+For observation \eqn{y_t}, let \eqn{F_t(y_t^-|y)} and \eqn{F_t(y_t|y)}
+denote the conditional CDF evaluated at \eqn{y_t - 1} and \eqn{y_t} given past observations,
 respectively. The PIT value is computed as
 \deqn{
-e_t = F_t(y_t^-) + u_t \{F_t(y_t) - F_t(y_t^-)\},
+e_t = F_t(y_t^-|y) + u_t \{F_t(y_t|y) - F_t(y_t^-|y)\},
 }
 where \eqn{u_t \sim \mathrm{Uniform}(0,1)}.
 
@@ -56,7 +60,7 @@ y <- sim_poisson(mu = 5, tau = 0.7,
 
 fit <- gctsc(
   y ~ 1,
-  data = data.frame(y = y),
+  data = data.frame(y),
   marginal = poisson.marg(),
   cormat = arma.cormat(1, 0),
   family = "gaussian",
@@ -67,20 +71,22 @@ fit <- gctsc(
 res <- residuals(fit)
 hist(res$residuals, main = "Randomized Quantile Residuals")
 hist(res$pit, main = "PIT Histogram")
-
 }
 \references{
-Dunn, P. K. and Smyth, G. K. (1996),
-Randomized quantile residuals,
-\emph{Journal of Computational and Graphical Statistics},
-\strong{5}(3): 236--244.
+Nguyen, Q. N. and De Oliveira, V. (2026), Approximating Gaussian Copula
+Models for Count Time Series: Connecting the Distributional Transform and
+a Continuous Extension, \emph{Journal of Applied Statistics},
+\strong{53}: 1--22.
 
-Nguyen, Q. N., and De Oliveira, V. (2026),
-Likelihood Inference in Gaussian Copula Models for Count Time Series
-via Minimax Exponential Tilting,
-\emph{Computational Statistics and Data Analysis}.
+Nguyen, Q. N. and De Oliveira, V. (2026), Likelihood Inference in Gaussian
+Copula Models for Count Time Series via Minimax Exponential Tilting,
+\emph{Computational Statistics & Data Analysis}, \strong{218}: 108344.
 
-Nguyen, Q. N., and De Oliveira, V. (2026),
-Scalable Likelihood Inference for Student--\eqn{t} Copula Count Time Series,
-Manuscript in preparation.
+Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
+for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
+\strong{9}: 1--49.
+}
+\seealso{
+\code{\link{gctsc}}, \code{\link{sim_gctsc}},
+\code{\link{pmvn}}, \code{\link{pmvt}}, \code{\link{predict.gctsc}}
 }

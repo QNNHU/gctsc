@@ -1,43 +1,40 @@
 ---
-output:
-  pdf_document: default
-  html_document: default
+output: github_document
 ---
+
 # gctsc
 
-`gctsc` provides fast and scalable likelihood inference for **Gaussian and Student–t copula models for count time series**.
+gctsc provides fast and scalable likelihood inference for Gaussian and Student–t copula models for count time series.
 
-The package supports a wide range of discrete marginals:
+The package supports a wide range of discrete marginals, including:
 
-- Poisson  
-- Negative Binomial  
-- Binomial  
-- Beta Binomial  
-- Zero-Inflated Poisson (ZIP)  
-- Zero-Inflated Binomial (ZIB)  
+- Poisson
+- Negative Binomial
+- Binomial
+- Beta-Binomial
+- Zero-Inflated Poisson (ZIP)
+- Zero-Inflated Binomial (ZIB)
 - Zero-Inflated Beta-Binomial (ZIBB)
 
-The latent dependence structure is modeled via **ARMA(p, q)** processes.
+The latent dependence structure is modeled through ARMA(p, q) processes.
 
-Likelihood evaluation is performed using one of the following approximation methods:
+Likelihood evaluation is available through the following approximation methods:
 
-- **TMET** — Time Series Minimax Exponential Tilting  
-- **GHK** — Geweke–Hajivassiliou–Keane simulator  
-- **CE** — Continuous Extension  
+- TMET — Time Series Minimax Exponential Tilting
+- GHK — Geweke–Hajivassiliou–Keane simulator
+- CE — Continuous Extension
 
 The implementation exploits ARMA structure for efficient high-dimensional computation.
 
 Additional features include:
 
-- Simulation utilities  
-- Randomized quantile residual diagnostics  
-- Predictive distributions and scoring rules (CRPS, LOGS)  
-
----
+- Simulation utilities
+- Randomized quantile residual diagnostics
+- Predictive distributions and scoring rules (CRPS, LOGS)
 
 ## Installation
 
-From CRAN (after release):
+From CRAN:
 
 ```r
 install.packages("gctsc")
@@ -64,11 +61,11 @@ y <- sim_poisson(
 fit <- gctsc(
   y ~ 1,
   data = data.frame(y = y),
-  marginal = poisson.marg(),
+  marginal = poisson.marg(link = "log"),
   cormat = arma.cormat(p = 1, q = 0),
   method = "TMET",
   family = "gaussian",
-  options = gctsc.opts(M = 1000)
+  options = gctsc.opts(seed =1, M = c(100,1000))
 )
 
 summary(fit)
@@ -101,14 +98,13 @@ Compared to existing implementations, `gctsc` added:
 
 If you use this package in published work, please cite:
 
-Nguyen, Q. N., & De Oliveira, V. (2026).
-Approximating Gaussian copula models for count time series: Connecting the distributional transform and a continuous extension.
-Journal of Applied Statistics.
 
-Nguyen, Q. N., & De Oliveira, V. (2026).
-Likelihood Inference in Gaussian Copula Models for Count Time Series via Minimax Exponential Tilting.
-Computational Statistics & Data Analysis.
+Nguyen, Q. N. and De Oliveira, V. (2026). Approximating Gaussian Copula Models for Count Time Series: Connecting the Distributional Transform and a Continuous Extension. Journal of Applied Statistics, 53, 1--22.
 
-Nguyen, Q. N., & De Oliveira, V. (2026).
-Scalable Likelihood Inference for Student–t Copula Count Time Series.
-Stats.
+Nguyen, Q. N. and De Oliveira, V. (2026). Likelihood Inference in Gaussian Copula Models for Count Time Series via Minimax Exponential Tilting. Computational Statistics and Data Analysis, 218, 108344.
+
+Nguyen, Q. N. and De Oliveira, V. (2026). Scalable Likelihood Inference for Student--t Copula Count Time Series. Stats, 9, 1--49.
+
+
+
+
