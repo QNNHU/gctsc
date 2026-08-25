@@ -57,7 +57,7 @@
 #'   \code{\link{sim_poisson}}
 #'
 #' @references
-#'Nguyen, Q. N. and De Oliveira, V. (2026). Scalable Likelihood Inference for Student–t Copula Count Time Series, \emph{Stats}, \strong{9}: 1--49.
+#'Nguyen, Q. N. and De Oliveira, V. (2026). Scalable Likelihood Inference for Student–t Copula Count Time Series, \emph{Stats}, \strong{9}(2): 43.
 #'
 #' @examples
 #' mu <- 10

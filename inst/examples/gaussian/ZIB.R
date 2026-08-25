@@ -37,17 +37,7 @@ library(gctsc)
 
 ## Model parametrization note:
 ## ---------------------------
-## Simulation uses:
-##   prob(t) = constant probability of success
-##   pi0(t)  = constant zero-inflation probability
-##
-## Estimation uses logistic regression:
-##   logit(prob(t)) = β_0          (intercept-only)
-##   logit(pi0(t))  = α_0          (intercept-only)
-##
-## where prob(t) = plogis(β_0),  pi0(t) = plogis(α_0).
 
-## --- Parameter setup ---
 n    <- 500
 size <- 24
 prob <- 0.2           # Binomial success probability
@@ -72,8 +62,8 @@ y <- sim_data$y
 ## --- Fit Gaussian copula ZIB model using TMET ---
 fit_zib <- gctsc(
   formula  = list(
-    mu  = y ~ 1,   # logit(prob(t)) = β_0
-    pi0 = ~ 1      # logit(pi0(t))  = α_0
+    mu  = y ~ 1,   
+    pi0 = ~ 1      
   ), data= data.frame(y),
   marginal = zib.marg(link = "logit", size = size),
   cormat   = arma.cormat(p = 1, q = 0),
@@ -91,15 +81,6 @@ predict(fit_zib)
 ## -------------------------------
 
 library(gctsc)
-
-## Model parametrization note:
-## ---------------------------
-## Simulation uses a time-varying π0(t) directly on (0,1).
-##
-## Estimation uses logistic regression:
-##   logit(pi0(t)) = α_0 + α_1 * Spring + α_2 * Summer + α_3 * Winter
-##
-## This allows π0(t) to vary seasonally through covariates.
 
 n    <- 3000
 size <- 24
@@ -134,7 +115,31 @@ sim_data <- sim_zib(
 )
 y <- sim_data$y
 
+
+
+
+X <- list(mu =  matrix(1, nrow = n), pi0 = X_pi)
+
+## --- Compute truncation bounds ---
+lambda <- c(qlogis(prob), beta_pi)
+
+marg <- zib.marg(link = "logit", size= size)
+ab <- marg$bounds(y, X, lambda, family ="gaussian")
+
+## --- Likelihood approximation ---
+llk_tmet <- pmvn(lower = ab[,1], upper = ab[,2],
+                 tau = tau, od = arma_order, 
+                 pm = 30, QMC = TRUE, method = "TMET")
+
+llk_ghk  <- pmvn( lower = ab[,1], upper = ab[,2],
+                  tau = tau, od = arma_order,
+                  QMC = TRUE, method ="GHK")
+
+c(TMET = llk_tmet, GHK = llk_ghk)
+
+
 df <- data.frame(y = y, X_pi)
+
 
 ## --- Fit Gaussian copula ZIB model (TMET) ---
 fit_zib_cov <- gctsc(
@@ -152,4 +157,4 @@ fit_zib_cov <- gctsc(
 
 summary(fit_zib_cov)
 plot(fit_zib_cov)
-predict(fit_zib_cov, newdata  = df[200, ])
+predict(fit_zib_cov, newdata  = df[3000, ])

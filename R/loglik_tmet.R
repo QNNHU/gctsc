@@ -1,7 +1,6 @@
 #' @keywords internal
 #' @noRd
-loglik_tmet <- function(ab, tau, od,
-                        family,
+loglik_tmet <- function(ab, tau, od, family,
                         pm = 30,
                         M = 1000,
                         QMC = TRUE,
@@ -11,16 +10,14 @@ loglik_tmet <- function(ab, tau, od,
   if (any(is.na(ab)))
     return(-1e20)
   
-  tryCatch(
-    tmet_core(ab[,1], ab[,2], tau, od,
-              family = family,
-              pm = pm,
-              M = M,
-              QMC = QMC,
-              ret_llk = ret_llk,
+  out<- tryCatch(
+    tmet_core(ab[,1], ab[,2], tau, od, family = family,
+              pm = pm, M = M,  QMC = QMC, ret_llk = ret_llk,
               df = df),
     error = function(e) -1e20
   )
+  
+  return(out)
 }
 
 
@@ -74,17 +71,11 @@ tmet_core <- function(lower, upper, tau, od, family, pm = 30, M = 1000,
     
     delta <- solv_delta$par[(n + 1):(2 * n)]
     
-    sampler_input <- list(
-      a = lower,
-      b = upper,
-      delta = delta,
-      condSd = sqrt(tmet_obj$cond_var),
-      phi = tmet_obj$phi,
-      q = tmet_obj$q,
-      m = tmet_obj$m,
-      Theta = tmet_obj$Theta,
-      M = M,
-      QMC = QMC
+    sampler_input <- list( 
+      a = lower,  b = upper, delta = delta,
+      condSd = sqrt(tmet_obj$cond_var),  phi = tmet_obj$phi,
+      q = tmet_obj$q, m = tmet_obj$m,  Theta = tmet_obj$Theta,
+      M = M, QMC = QMC
     )
     
     if (ret_llk) {
@@ -102,15 +93,9 @@ tmet_core <- function(lower, upper, tau, od, family, pm = 30, M = 1000,
     z0[n] <- 1
     z0[2 * n] <- 0
     
-    sol <- lm_sparse_solver(
-      z0,
-      Condmv_Obj = tmet_obj,
-      a = lower,
-      b = upper,
-      nu = df,
-      maxit = 500,
-      tol = 1e-1,
-      verbose = FALSE
+    sol <- lm_sparse_solver( 
+      z0,  Condmv_Obj = tmet_obj, a = lower, b = upper, nu = df,
+      maxit = 500, tol = 1e-1, verbose = FALSE
     )
     
     # if (isFALSE(sol$converged)) {
@@ -121,24 +106,13 @@ tmet_core <- function(lower, upper, tau, od, family, pm = 30, M = 1000,
     delta <- z[(n + 1):(2 * n)]
     kap <- delta[n]
     
-    const <- log(2 * pi) / 2 -
-      lgamma(df / 2) -
-      (df / 2 - 1) * log(2) +
-      TruncatedNormal::lnNpr(-kap, Inf) +
-      0.5 * kap^2
+    const <- log(2 * pi) / 2 - lgamma(df / 2) - (df / 2 - 1) * log(2) +
+      TruncatedNormal::lnNpr(-kap, Inf) + 0.5 * kap^2
     
-    sampler_input <- list(
-      a = lower,
-      b = upper,
-      condSd = sqrt(tmet_obj$cond_var),
-      phi = tmet_obj$phi,
-      q = tmet_obj$q,
-      m = tmet_obj$m,
-      delta = delta,
-      df = df,
-      Theta = tmet_obj$Theta,
-      M = M,
-      QMC = QMC
+    sampler_input <- list( 
+      a = lower,  b = upper, condSd = sqrt(tmet_obj$cond_var),
+      phi = tmet_obj$phi,  q = tmet_obj$q,  m = tmet_obj$m,
+      delta = delta, df = df, Theta = tmet_obj$Theta,  M = M, QMC = QMC
     )
     
     if (ret_llk) {

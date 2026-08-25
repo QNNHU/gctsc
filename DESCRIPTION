@@ -1,10 +1,9 @@
 Package: gctsc
 Title: Gaussian and Student-t Copula Models for Count Time Series
-Version: 0.2.4
+Version: 0.2.5
 Authors@R: 
     c(person("Quynh", "Nguyen", role = c("aut", "cre"),
-             email = "nqnhu2209@gmail.com"),
-      person("Victor", "De Oliveira", role = "aut"))
+             email = "nqnhu2209@gmail.com"))
 Description: Provides likelihood-based inference for Gaussian and Student-t 
     copula models for univariate count time series. Supports Poisson, 
     negative binomial, binomial, beta-binomial, and zero-inflated 
@@ -18,7 +17,7 @@ Description: Provides likelihood-based inference for Gaussian and Student-t
     and the Continuous Extension (CE) approximation of Nguyen and 
     De Oliveira (2025) <doi:10.1080/02664763.2025.2498502>. The package 
     follows the S3 design philosophy of 'gcmr' but is developed independently.
-License: MIT + file LICENSE
+License: GPL-3
 Imports: Rcpp, Matrix, TruncatedNormal, VGAM, truncnorm,  nlme, car
 LinkingTo: Rcpp, RcppArmadillo
 URL: https://github.com/QNNHU/gctsc

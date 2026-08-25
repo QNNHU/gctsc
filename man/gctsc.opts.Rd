@@ -4,7 +4,7 @@
 \alias{gctsc.opts}
 \title{Set Options for Gaussian and Student t Copula Time Series Model}
 \usage{
-gctsc.opts(seed = 1, M = c(100, 1000), ...)
+gctsc.opts(seed = 1, M = c(100, 1000), hessian = TRUE, ...)
 }
 \arguments{
 \item{seed}{Integer specifying the random seed used for Monte Carlo or
@@ -22,6 +22,9 @@ value of \code{M}. This option is used only for simulation-based methods
 such as \code{"GHK"} and \code{"TMET"} and is ignored for
 \code{method = "CE"}.}
 
+\item{hessian}{Logical. If \code{TRUE}, the Hessian matrix is computed and used to obtain
+standard errors for the parameter estimates. The default is \code{TRUE}}
+
 \item{...}{Additional control arguments passed to \code{\link[stats]{optim}}.}
 }
 \value{
@@ -29,6 +32,8 @@ A list with components:
 \item{\code{seed}}{Integer. The random seed used.}
 \item{\code{M}}{Positive integer or vector of two positive integers specifying
 the Monte Carlo or quasi-Monte Carlo sample sizes.}
+\item{\code{hessian}}{Logical indicating whether the Hessian matrix is computed for
+standard error calculations.}
 \item{\code{opt}}{A function used internally by \code{gctsc()} to optimize
 the approximate log-likelihood.}
 }

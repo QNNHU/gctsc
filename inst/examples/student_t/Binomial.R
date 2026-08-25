@@ -4,20 +4,6 @@
 
 library(gctsc)
 
-## --- Parametrization note ----------------------------------------------
-## Simulation:
-##   prob(t) ∈ (0,1) is used directly in sim_binom()
-##
-## Estimation:
-##   gctsc() fits the Binomial marginal using a logit link:
-##       logit{prob(t)} = η_prob(t)
-##   so that:
-##       prob(t) = plogis(η_prob(t))
-##
-## This parametrization:
-##   - allows covariates to enter prob(t) naturally,
-##   - avoids boundary issues (prob cannot hit 0 or 1),
-##   - matches standard GLM/binomial practice.
 
 ## --- Parameter setup ---
 n    <- 500
@@ -60,7 +46,7 @@ llk_ghk  <- pmvt( lower = ab[,1], upper = ab[,2],
 c(TMET = llk_tmet, GHK = llk_ghk)
 
 
-## --- Fit Student t copula Binomial model using GHK ---
+## --- Fit Student t copula Binomial model ---
 fit_binom <- gctsc(
   formula  = y ~ 1, data= data.frame(y),
   marginal = binom.marg(link = "logit", size = size),

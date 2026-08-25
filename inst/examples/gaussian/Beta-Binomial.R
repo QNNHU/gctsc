@@ -4,23 +4,6 @@
 
 library(gctsc)
 
-## --- Parametrization note ----------------------------------------------
-## Simulation:
-##   sim_bbinom() uses:
-##       prob(t) ∈ (0,1)          (success probability)
-##       rho ∈ (0,1)              (intra-class correlation)
-##
-## Estimation:
-##   gctsc() fits the Beta–Binomial marginal using a logit link:
-##       logit{prob(t)} = η_prob(t)
-##   so that prob(t) = plogis(η_prob(t)).
-##
-## This parametrization:
-##   - matches GLM-style modeling for Beta–Binomial mean structure,
-##   - allows covariates to enter prob(t) naturally,
-##   - prevents boundary issues with prob ∈ (0,1),
-##   - keeps rho fixed or treated as a separate dispersion parameter.
-
 ## --- Parameter setup ---
 n    <- 500
 size <- 24
@@ -44,12 +27,30 @@ sim_data <- sim_bbinom(
 )
 y <- sim_data$y
 
+X <- matrix(1, nrow = n)
+
+## --- Compute truncation bounds ---
+marg <- bbinom.marg(link = "logit", size= size)
+ab <- marg$bounds(y, list(mu=X), c(beta0,qlogis(rho)),family ="gaussian")
+
+## --- Likelihood approximation ---
+llk_tmet <- pmvn(lower = ab[,1], upper = ab[,2],
+                 tau = tau, od = arma_order, 
+                 pm = 30, QMC = TRUE,  method ="TMET")
+
+llk_ghk  <- pmvn( lower = ab[,1], upper = ab[,2],
+                  tau = tau, od = arma_order,
+                  QMC = TRUE,  method = "GHK")
+
+c(TMET = llk_tmet, GHK = llk_ghk)
+
+
 ## --- Fit Gaussian copula Beta–Binomial model using TMET ---
 fit_bbinom <- gctsc(
   formula  = y ~ 1, data= data.frame(y),
   marginal = bbinom.marg(link = "logit", size = size),
   cormat   = arma.cormat(p = 1, q = 0),
-  method   = "GHK", family = "gaussian",
+  method   = "CE", family = "gaussian",
   options  = gctsc.opts(seed = 1)
 )
 
@@ -62,20 +63,6 @@ predict(fit_bbinom)
 ## -------------------------------
 
 library(gctsc)
-
-## --- Parametrization note ----------------------------------------------
-## prob(t) is generated from a logistic regression:
-##       logit{prob(t)} = X(t)^T β
-## prob(t) = plogis(Xβ)
-##
-## The same logit parametrization is used in gctsc():
-##   marginal = bbinom.marg(link = "logit")
-##
-## This ensures:
-##   - directly comparable coefficients (β vs fitted β̂),
-##   - natural covariate inclusion,
-##   - probability always within (0,1).
-
 ## --- Parameter setup ---
 n    <- 500
 size <- 24
@@ -84,8 +71,7 @@ tau  <- c(phi)
 arma_order <- c(1, 0)
 
 ## Overdispersion / intra-class correlation parameterization
-## rho_vgam corresponds to 1 / (1 + θ) in VGAM
-rho_vgam <- 1 / (1 + 5)
+rho <- 1 / (1 + 5)
 
 ## --- Construct covariates (seasonal + AR structure) ---
 zeta <- rnorm(n)
@@ -110,7 +96,7 @@ prob <- plogis(logit_prob)
 set.seed(1)
 sim_data <- sim_bbinom(
   prob       = prob,
-  rho        = rho_vgam,
+  rho        = rho,
   size       = size,
   tau        = tau,
   arma_order = arma_order,
@@ -119,9 +105,24 @@ sim_data <- sim_bbinom(
 )
 y <- sim_data$y
 
+
+## --- Compute truncation bounds ---
+marg <- bbinom.marg(link = "logit", size= size)
+ab <- marg$bounds(y, list(mu = as.matrix(X)), c(beta_true, qlogis(rho)),family ="gaussian")
+
+## --- Likelihood approximation ---
+llk_tmet <- pmvn(lower = ab[,1], upper = ab[,2],
+                 tau = tau, od = arma_order, 
+                 pm = 30, QMC = TRUE,  method = "TMET")
+
+llk_ghk  <- pmvn( lower = ab[,1], upper = ab[,2],
+                  tau = tau, od = arma_order,
+                  QMC = TRUE, method ="GHK")
+
+c(TMET = llk_tmet, GHK = llk_ghk)
+
 ## --- Fit Gaussian copula Beta–Binomial model ---
 data_df <- data.frame(y = y, X)
-
 fit_bbinom_cov <- gctsc(
   formula  = y ~ x2 + x3 + x4,
   data     = data_df,

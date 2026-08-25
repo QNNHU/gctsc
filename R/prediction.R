@@ -2,33 +2,40 @@
 #' @title One-Step-Ahead Predictive Distribution for Copula Count Time Series Models
 #'
 #' @description
-#' Computes the one-step-ahead predictive distribution for a fitted
-#' Gaussian or Student--t copula count time series model.
+#' Computes the one-step-ahead predictive distribution for a fitted Gaussian or
+#' Student-\eqn{t} copula count time series model.
 #'
-#' The predictive probability mass function is evaluated over the grid
-#' \code{0:y_max}. If \code{y_max} is not supplied, it is chosen automatically
-#' from the fitted response values as
-#' \code{ceiling(max(y) + k * sd(y))}. Summary statistics of the predictive
-#' distribution are returned. If the observed response is included in
-#' \code{newdata}, the Continuous Ranked Probability Score (CRPS) and
-#' Logarithmic Score (LOGS) are also computed.
+#' The predictive probability mass function is evaluated on the count grid
+#' \code{0:y_max}. For bounded marginal distributions, \code{y_max} is set to
+#' the size parameter at the prediction time. For unbounded marginal
+#' distributions, \code{y_max} may be supplied by the user; otherwise, it is
+#' selected automatically as \code{ceiling(max(y) + k * sd(y))}, where \code{y}
+#' is the fitted response series.
+#'
+#' The function returns summary statistics of the predictive distribution. If
+#' the observed response at the prediction time is included in \code{newdata},
+#' the Continuous Ranked Probability Score (CRPS) and Logarithmic Score (LOGS)
+#' are also computed.
 #'
 #' @param object A fitted model object of class \code{"gctsc"}, as returned by
 #'   \code{\link{gctsc}}.
 #'
 #' @param newdata Optional one-row \code{data.frame} containing the covariate
-#'   values at the prediction time point. The variables in \code{newdata}
-#'   should match the variables used in the fitted model formula. If the fitted
-#'   model is intercept-only, \code{newdata} may be omitted.
+#'   values at the prediction time point. The variables in \code{newdata} should
+#'   match those used in the fitted model formula. If the fitted model is
+#'   intercept-only, \code{newdata} may be omitted.
 #'
 #'   If the observed response at the prediction time is available, it may also
 #'   be included in \code{newdata} using the same response variable name as in
-#'   the fitted model. In that case, CRPS and LOGS are computed and returned.
+#'   the fitted model. In this case, CRPS and LOGS are computed and returned.
 #'
 #' @param y_max Optional nonnegative integer specifying the largest count value
-#'   included in the predictive grid \code{0:y_max}. If \code{NULL}, \code{y_max}
-#'   is selected automatically using \code{ceiling(max(y) + k * sd(y))}, where
-#'   \code{y} is the fitted response series.
+#'   included in the predictive grid \code{0:y_max}. For bounded marginal
+#'   distributions, this value is determined by the size parameter at the
+#'   prediction time. For unbounded marginal distributions, if \code{y_max} is
+#'   \code{NULL}, it is selected automatically as
+#'   \code{ceiling(max(y) + k * sd(y))}, where \code{y} is the fitted response
+#'   series.
 #'
 #' @param k Nonnegative numeric multiplier used to choose \code{y_max} when
 #'   \code{y_max = NULL}. The default is \code{k = 3}.
@@ -49,27 +56,26 @@
 #'         predictive interval.
 #'   \item \code{CRPS}: Continuous Ranked Probability Score, returned only if
 #'         the observed response is supplied in \code{newdata}.
-#'   \item \code{LOGS}: Logarithmic Score, returned only if the observed
-#'         response is supplied in \code{newdata}.
+#'   \item \code{LOGS}: Logarithmic Score, returned only if the observed response
+#'         is supplied in \code{newdata}.
 #'   \item \code{y_true}: Observed response value, returned only if supplied in
 #'         \code{newdata}.
 #' }
 #'
 #' @details
 #' The function constructs prediction design matrices from the stored model
-#' terms using \code{\link[stats]{model.matrix}}. Thus the same formula
+#' terms using \code{\link[stats]{model.matrix}}. Therefore, the same formula
 #' convention used in model fitting is used for prediction, including automatic
 #' intercept handling and factor-variable expansion.
 #'
 #' For zero-inflated marginals, \code{newdata} is used to construct both the
-#' mean-component design matrix and the zero-inflation design matrix. The
-#' column names of the new design matrices must match those from the fitted
-#' model.
+#' mean-component design matrix and the zero-inflation design matrix. The column
+#' names of the new design matrices must match those from the fitted model.
 #'
-#' The predictive distribution is computed using the copula family and
-#' approximation method stored in the fitted object. For Gaussian copulas,
-#' multivariate normal rectangle probabilities are used. For Student--t
-#' copulas, multivariate t rectangle probabilities are used.
+#' For Gaussian copulas, the predictive distribution is computed using the 
+#' approximation method stored in the fitted object.
+#' For Student-\eqn{t} copulas, the predictive distribution is currently computed using the
+#' GHK approximation.
 #'
 #' If the observed response is included in \code{newdata}, it must be a single
 #' nonnegative integer count and should not exceed \code{y_max}.
@@ -81,7 +87,7 @@
 #'
 #' Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
 #' for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
-#' \strong{9}: 1--49.
+#' \strong{9}(2): 43.
 #'
 #' @examples
 #' # Simulate Poisson AR(1) data
@@ -149,24 +155,28 @@ predict.gctsc <- function(object, newdata = NULL, y_max = NULL, k = 3, ...) {
   method <- object$method
   
   # Determine y_max for predictive distribution
-  if (is.null(y_max)) {
-    y_sd <- stats::sd(y)
-    y_max <- ceiling(max(y) + k * y_sd)
+  if(!object$marginal$bounded){
+    if (is.null(y_max)) {
+      y_sd <- stats::sd(y)
+      y_max <- ceiling(max(y) + k * y_sd)
+    }
+    
+    if (!is.numeric(y_max) || length(y_max) != 1L || !is.finite(y_max) || y_max < 0 ||
+        y_max != as.integer(y_max)) {
+      stop(sprintf("%s(): 'y_max' must be a single nonnegative integer.", fn),
+           call. = FALSE)
+    } 
+    
+    
+    y_max <- as.integer(y_max)
+    
+    if (!is.finite(y_max) || y_max < max(y)) {
+      y_max <- max(y)
+    }
+  } else {
+    y_max <- object$marginal$size
+    
   }
-  
-  if (!is.numeric(y_max) || length(y_max) != 1L ||
-      !is.finite(y_max) || y_max < 0 ||
-      y_max != as.integer(y_max)) {
-    stop(sprintf("%s(): 'y_max' must be a single nonnegative integer.", fn),
-         call. = FALSE)
-  }
-  
-  y_max <- as.integer(y_max)
-  
-  if (!is.finite(y_max) || y_max < max(y)) {
-    y_max <- max(y)
-  }
-  
   
   y_grid <- 0:y_max
   n_grid <- length(y_grid)
@@ -222,10 +232,7 @@ predict.gctsc <- function(object, newdata = NULL, y_max = NULL, k = 3, ...) {
     
     X_pi0_rep <- X_pi0_new[rep(1L, n_grid), , drop = FALSE]
     
-    x_rep <- list(
-      mu = X_mu_rep,
-      pi0 = X_pi0_rep
-    )
+    x_rep <- list(mu = X_mu_rep, pi0 = X_pi0_rep)
   } else {
     x_rep <- list(
       mu = X_mu_rep
@@ -242,14 +249,14 @@ predict.gctsc <- function(object, newdata = NULL, y_max = NULL, k = 3, ...) {
   
   od <- object$cormat$od
   tau <- object$coef[object$itau]
-  
+  pm <- object$pm
   if (!is.null(seed)) {
     set.seed(seed)
   }
   
   if (family == "gaussian") {
     if (method == "TMET") {
-      p_y <- pred_tmet_mvn(pred_input, tau = tau, od = od)$p_y
+      p_y <- pred_tmet_mvn(pred_input, tau = tau, od = od, pm =pm )$p_y
     } else{
       p_y <- pred_ghk_mvn(pred_input, tau = tau, od = od)$p_y
       } 
@@ -276,16 +283,9 @@ predict.gctsc <- function(object, newdata = NULL, y_max = NULL, k = 3, ...) {
   lower <- y_grid[which(cdf >= alpha / 2)[1]]
   upper <- y_grid[which(cdf >= 1 - alpha / 2)[1]]
   
-  out <- list(
-    mean = mean_pred,
-    median = median_pred,
-    mode = mode_pred,
-    variance = var_pred,
-    p_y = p_y,
-    y_grid = y_grid,
-    lower = lower,
-    upper = upper
-  )
+  out <- list(mean = mean_pred, median = median_pred, mode = mode_pred,
+    variance = var_pred, p_y = p_y, y_grid = y_grid, 
+    lower = lower,upper = upper )
   
   if (isTRUE(has_y)) {
     indicator <- as.numeric(y_grid >= y_true)
@@ -298,45 +298,6 @@ predict.gctsc <- function(object, newdata = NULL, y_max = NULL, k = 3, ...) {
   out
 }
 
-
-arma_model <- function(tau, od, n, fn = "prediction") {
-  if (length(tau) != sum(od)) {
-    stop(sprintf("%s(): length of 'tau' must match ARMA order.", fn),
-         call. = FALSE)
-  }
-  
-  if (all(od == 0)) {
-    stop(sprintf("%s(): ARMA(0,0) is not supported.", fn),
-         call. = FALSE)
-  }
-  
-  p0 <- od[1]
-  q0 <- od[2]
-  
-  iar <- if (p0 > 0) seq_len(p0) else integer(0)
-  ima <- if (q0 > 0) (p0 + 1L):(p0 + q0) else integer(0)
-  
-  phi <- if (p0 > 0) tau[iar] else 0
-  theta <- if (q0 > 0) tau[ima] else 0
-  
-  p <- if (p0 == 0) 1L else p0
-  q <- if (q0 == 0) 1L else q0
-  m <- max(p, q)
-  
-  Tau <- list(phi = phi, theta = theta)
-  
-  list(
-    phi = phi,
-    theta = theta,
-    theta_r = c(1, theta, numeric(n)),
-    n = n,
-    p = p,
-    q = q,
-    m = m,
-    sigma2 = 1 / sum(ma.inf(Tau)^2),
-    gamma = aacvf(Tau, n - 1)
-  )
-}
 
 
 
@@ -358,7 +319,7 @@ pred_ghk_mvn <- function(args, tau, od) {
 
 
 
-pred_tmet_mvn <- function(args, tau, od){
+pred_tmet_mvn <- function(args, tau, od, pm){
   fn <- "pred_tmet_mvn"
   
   if (anyNA(args$a) || any(is.nan(args$a))) {
@@ -394,10 +355,8 @@ pred_tmet_mvn <- function(args, tau, od){
       ret <- grad_jacprod(x, ..., retProd = TRUE)
       ret$jac_grad
     },
-    method = "L-BFGS-B",
-    Condmv_Obj = tmet_obj,
-    a = lower,
-    b = upper,
+    method = "L-BFGS-B", Condmv_Obj = tmet_obj,
+    a = lower,  b = upper,
     lower = c(lower, rep(-Inf, n)),
     upper = c(upper, rep(Inf, n)),
     control = list(maxit = 500)
@@ -413,11 +372,9 @@ pred_tmet_mvn <- function(args, tau, od){
   
   delta <- solv_delta$par[(n + 1L):(2L * n)]
   
-  model <- c(
-    arma,
+  model <- c(arma,
     list(
-      delta = delta,
-      Theta = rbind(tmet_obj$Theta),
+      delta = delta, Theta = rbind(tmet_obj$Theta),
       condSd = sqrt(tmet_obj$cond_var),
       v = tmet_obj$cond_var
     )
@@ -442,4 +399,38 @@ pred_mvt <- function(args, tau, od) {
   
   predmvt(args, model)
 }
+
+
+arma_model <- function(tau, od, n, fn = "prediction") {
+  if (length(tau) != sum(od)) {
+    stop(sprintf("%s(): length of 'tau' must match ARMA order.", fn),
+         call. = FALSE)
+  }
+  
+  if (all(od == 0)) {
+    stop(sprintf("%s(): ARMA(0,0) is not supported.", fn),
+         call. = FALSE)
+  }
+  
+  p0 <- od[1]
+  q0 <- od[2]
+  
+  iar <- if (p0 > 0) seq_len(p0) else integer(0)
+  ima <- if (q0 > 0) (p0 + 1L):(p0 + q0) else integer(0)
+  
+  phi <- if (p0 > 0) tau[iar] else 0
+  theta <- if (q0 > 0) tau[ima] else 0
+  
+  p <- if (p0 == 0) 1L else p0
+  q <- if (q0 == 0) 1L else q0
+  m <- max(p, q)
+  
+  Tau <- list(phi = phi, theta = theta)
+  
+  list(phi = phi, theta = theta, theta_r = c(1, theta, numeric(n)),
+       n = n, p = p, q = q,  m = m, sigma2 = 1 / sum(ma.inf(Tau)^2),
+       gamma = aacvf(Tau, n - 1)
+  )
+}
+
 

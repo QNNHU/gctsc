@@ -3,14 +3,17 @@
 \docType{data}
 \name{rota}
 \alias{rota}
-\title{Weekly Rotavirus case counts across Germany}
+\title{Weekly Rotavirus Case Counts Across Germany from 2001 to 2025}
 \format{
-A data frame with 1248 rows and 413 variables.
+A data frame with 1300 rows and 411 variables.
 }
 \usage{
 data("rota")
 }
 \description{
-Weekly Rotavirus case counts across Germany
+Weekly Rotavirus case counts reported across German districts from 2001 to 2025. Each year contains 52 weeks.
+Each row corresponds to one reporting week, and the district-level columns contain
+weekly case counts for individual districts. The data use 52 reporting weeks
+per year.
 }
 \keyword{datasets}

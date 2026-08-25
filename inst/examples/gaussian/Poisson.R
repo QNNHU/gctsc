@@ -4,8 +4,8 @@
 
 ## --- Parameter setup ---
 n <- 2000
-mu <- 10
-phi <- 0.2
+mu <- 2
+phi <- 0.8
 arma_order <- c(1, 0)
 tau <- c(phi)
 family <- "gaussian"
@@ -40,21 +40,21 @@ llk_ce  <- pmvn( lower = ab[,1], upper = ab[,2],
 
 c(TMET = llk_tmet, GHK = llk_ghk, CE = llk_ce)
 
-## --- Fit Gaussian copula model using TMET ---
+## --- Fit Gaussian copula model using CE ---
 system.time(
-fit_TMET <- gctsc(
+fit <- gctsc(
   formula = y ~ 1, data= data.frame(y),
   marginal = poisson.marg(link ="log"),
   cormat   = arma.cormat(p = 1, q = 0),
-  method   = "TMET",
+  method   = "CE",
   family   = "gaussian",
   QMC      = TRUE,
   options = gctsc.opts(seed=1)
 ))
 
 
-plot(fit_TMET)       # residual diagnostics
-predict(fit_TMET)    # one-step forecasting
+plot(fit)       # residual diagnostics
+predict(fit)    # one-step forecasting
 
 ## --- Fit Gaussian copula model using GHK ---
 system.time(
@@ -113,7 +113,7 @@ llk_tmet_qmc <- pmvn(
   upper = ab[, 2],
   tau   = tau,
   od    = arma_order,
-  method = "GHK"
+  method = "TMET"
 ))
 
 ## --- Fit Gaussian copula model ---
@@ -126,23 +126,13 @@ fit1 <- gctsc(
   marginal = gctsc::poisson.marg(link = "log"),
   cormat   = gctsc::arma.cormat(p = 1, q = 0),
   family   = "gaussian",
-  method   = "GHK",
+  method   = "CE",
   options  = gctsc.opts(seed = 1, M = c(100,1000))
 ))
-
-
-
-system.time(
-  fit2 <- gcmr(
-    formula  = Y ~ x2 + x3 + x4,
-    data     = data_train,
-    marginal = gcmr::poisson.marg(link = "log"),
-    cormat   = gcmr::arma.cormat(p = 1, q = 0)
-  ))
 
 
 
 summary(fit1)
 plot(fit1)
 residuals(fit1)
-predict(fit1, newdata= data_df[1000,],k =1)
+predict(fit1, newdata= data_df[1000,], y_max = max(y))

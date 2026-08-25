@@ -392,7 +392,7 @@ simulate_marginal <- function(marg, u, lambda) {
          "zip" = {
            mu <- lambda$mu
            pi0 <- lambda$pi0
-           v <- (u - pi0) / (1 - pi0)    #remove the effect of u <= pi0
+           v <- (u - pi0) / (1 - pi0)   
            v <- pmax(0, pmin(1, v))
            ifelse(u <= pi0, 0, qpois(v, lambda = mu))
          }

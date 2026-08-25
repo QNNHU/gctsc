@@ -54,7 +54,7 @@
 #'
 #' Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
 #' for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
-#' \strong{9}: 1--49.
+#' \strong{9}(2): 43.
 #'
 #' @examples
 #' # Simulate Poisson AR(1) data under a Gaussian copula

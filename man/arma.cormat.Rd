@@ -24,9 +24,9 @@ containing:
 \itemize{
 \item \code{npar}: Number of ARMA parameters (\eqn{p + q}).
 \item \code{od}: Integer vector \code{c(p, q)}.
-\item \code{start}: Function to compute starting values from data,
-typically using \code{\link[stats]{arima}}.
-\item \code{lower}, \code{upper}: Parameter bounds.
+\item \code{start}: Function that returns starting values for ARMA parameters.
+The default starting values are \code{0.1} for each parameter. If supplied,
+\code{tau.lower} and \code{tau.upper} are attached to the return vectors as \code{lower}, \code{upper} attribute.
 }
 }
 \description{

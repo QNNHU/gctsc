@@ -4,21 +4,6 @@
 
 library(gctsc)
 
-## --- Parametrization note ----------------------------------------------
-## Simulation:
-##   prob(t) ∈ (0,1) is used directly in sim_binom()
-##
-## Estimation:
-##   gctsc() fits the Binomial marginal using a logit link:
-##       logit{prob(t)} = η_prob(t)
-##   so that:
-##       prob(t) = plogis(η_prob(t))
-##
-## This parametrization:
-##   - allows covariates to enter prob(t) naturally,
-##   - avoids boundary issues (prob cannot hit 0 or 1),
-##   - matches standard GLM/binomial practice.
-
 ## --- Parameter setup ---
 n    <- 200
 size <- 24                # number of trials
@@ -39,12 +24,28 @@ sim_data <- sim_binom(
 )
 y <- sim_data$y
 
+X <- matrix(1, nrow = n)
+## --- Compute truncation bounds ---
+marg <- binom.marg(link = "logit", size= size)
+ab <- marg$bounds(y, list(mu = X), qlogis(prob),family ="gaussian")
+
+## --- Likelihood approximation ---
+llk_tmet <- pmvn(lower = ab[,1], upper = ab[,2],
+                 tau = tau, od = arma_order, 
+                 pm = 30, QMC = TRUE, method ="TMET")
+
+llk_ghk  <- pmvn( lower = ab[,1], upper = ab[,2],
+                  tau = tau, od = arma_order,
+                  QMC = TRUE,  method = "GHK")
+
+c(TMET = llk_tmet, GHK = llk_ghk)
+
 ## --- Fit Gaussian copula Binomial model using GHK ---
 fit_binom <- gctsc(
   formula  = y ~ 1, data= data.frame(y),
   marginal = binom.marg(link = "logit", size = size),
   cormat   = arma.cormat(p = 1, q = 0),family = "gaussian",
-  method   = "TMET",
+  method   = "CE",
   options  = gctsc.opts(seed = 1, M = c(100,1000))
 )
 

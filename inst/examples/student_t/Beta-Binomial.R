@@ -4,23 +4,6 @@
 
 library(gctsc)
 
-## --- Parametrization note ----------------------------------------------
-## Simulation:
-##   sim_bbinom() uses:
-##       prob(t) ∈ (0,1)          (success probability)
-##       rho ∈ (0,1)              (intra-class correlation)
-##
-## Estimation:
-##   gctsc() fits the Beta–Binomial marginal using a logit link:
-##       logit{prob(t)} = η_prob(t)
-##   so that prob(t) = plogis(η_prob(t)).
-##
-## This parametrization:
-##   - matches GLM-style modeling for Beta–Binomial mean structure,
-##   - allows covariates to enter prob(t) naturally,
-##   - prevents boundary issues with prob ∈ (0,1),
-##   - keeps rho fixed or treated as a separate dispersion parameter.
-
 ## --- Parameter setup ---
 n    <- 500
 size <- 24
@@ -83,19 +66,6 @@ predict(fit_bbinom)
 
 library(gctsc)
 
-## --- Parametrization note ----------------------------------------------
-## prob(t) is generated from a logistic regression:
-##       logit{prob(t)} = X(t)^T β
-## prob(t) = plogis(Xβ)
-##
-## The same logit parametrization is used in gctsc():
-##   marginal = bbinom.marg(link = "logit")
-##
-## This ensures:
-##   - directly comparable coefficients (β vs fitted β̂),
-##   - natural covariate inclusion,
-##   - probability always within (0,1).
-
 ## --- Parameter setup ---
 n    <- 500
 size <- 24
@@ -104,7 +74,7 @@ tau  <- c(phi)
 arma_order <- c(1, 0)
 
 ## Overdispersion / intra-class correlation parameterization
-## rho_vgam corresponds to 1 / (1 + θ) in VGAM
+
 rho_vgam <- 1 / (1 + 5)
 
 ## --- Construct covariates (seasonal + AR structure) ---

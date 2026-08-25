@@ -1,51 +1,9 @@
 ## -------------------------------
 ## Example: Zero-Inflated Binomial AR(1) model
 ## -------------------------------
-## Model parametrization note:
-## ---------------------------
-## For simulation, the user specifies:
-##   - prob(t): Binomial success probability
-##   - pi0(t):  zero–inflation probability
-## These are probabilities on the (0,1) scale.
-
-## For estimation, gctsc() uses a regression formulation:
-##
-##   logit( prob(t) ) = η_prob(t) = β_0 
-##   logit( pi0(t)  ) = η_pi0(t)  = α_0 + α_1 z_1(t) + ...
-##
-## where:
-##   prob(t) = plogis(η_prob(t))
-##   pi0(t)  = plogis(η_pi0(t))
-##
-## This parametrization:
-##   • ensures 0 < prob(t), pi0(t) < 1,
-##   • allows covariates naturally,
-##   • matches the GLM framework,
-##   • is the scale used for MLE in gctsc().
-##
-## Thus, simulation uses probability parameters directly,
-## while estimation uses their logistic regression
-## representations through the model formula.
-
-
-
-## -------------------------------
-## Example: Zero-Inflated Binomial AR(1) 
-## -------------------------------
 
 library(gctsc)
 
-## Model parametrization note:
-## ---------------------------
-## Simulation uses:
-##   prob(t) = constant probability of success
-##   pi0(t)  = constant zero-inflation probability
-##
-## Estimation uses logistic regression:
-##   logit(prob(t)) = β_0          (intercept-only)
-##   logit(pi0(t))  = α_0          (intercept-only)
-##
-## where prob(t) = plogis(β_0),  pi0(t) = plogis(α_0).
 
 ## --- Parameter setup ---
 n    <- 500
@@ -96,8 +54,8 @@ c(TMET = llk_tmet, GHK = llk_ghk)
 system.time(
 fit_zib <- gctsc(
   formula  = list(
-    mu  = y ~ 1,   # logit(prob(t)) = β_0
-    pi0 = ~ 1      # logit(pi0(t))  = α_0
+    mu  = y ~ 1,  
+    pi0 = ~ 1      
   ), data= data.frame(y),
   marginal = zib.marg(link = "logit", size = size),
   cormat   = arma.cormat(p = 1, q = 0),
@@ -116,14 +74,6 @@ predict(fit_zib)
 
 library(gctsc)
 
-## Model parametrization note:
-## ---------------------------
-## Simulation uses a time-varying π0(t) directly on (0,1).
-##
-## Estimation uses logistic regression:
-##   logit(pi0(t)) = α_0 + α_1 * Spring + α_2 * Summer + α_3 * Winter
-##
-## This allows π0(t) to vary seasonally through covariates.
 
 n    <- 2000
 size <- 24

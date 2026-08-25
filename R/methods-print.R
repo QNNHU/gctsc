@@ -84,7 +84,7 @@ print.gctsc <- function(x, digits = max(3, getOption("digits") - 3), ...) {
 #' Summarize a gctsc Model Fit
 #'
 #' Computes standard errors, z-values, and p-values for the estimated parameters
-#' in a fitted `gctsc` object.
+#' in a fitted `gctsc` object if hessian is produced.
 #'
 #' @param object An object of class `gctsc`.
 #' @param ... Ignored. Included for S3 method compatibility.

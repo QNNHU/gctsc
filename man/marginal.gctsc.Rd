@@ -29,9 +29,11 @@ zibb.marg(link = "logit", size,  lambda.lower = NULL, lambda.upper = NULL)
 \item{link}{Link function used for the main marginal component.
 Supported links depend on the marginal family; see Description.}
 
-\item{lambda.lower}{Optional lower bounds on the marginal parameters.}
+\item{lambda.lower}{Optional lower bounds for the marginal parameters used
+during numerical optimization.}
 
-\item{lambda.upper}{Optional upper bounds on the marginal parameters.}
+\item{lambda.upper}{Optional upper bounds for the marginal parameters used
+during numerical optimization.}
 
 \item{size}{Number of trials for Binomial, Zero-Inflated Binomial,
 Beta--Binomial, and Zero-Inflated Beta--Binomial marginals. For these
@@ -44,10 +46,11 @@ A marginal model object of class \code{"marginal.gctsc"}.
 }
 \description{
 These functions construct marginal model objects for use with
-\code{\link{gctsc}}. Each constructor returns an object of class
-\code{"marginal.gctsc"} containing the information needed to initialize
-marginal parameters and compute the latent truncation bounds used in the
-copula likelihood.
+\code{\link{gctsc}}. Each constructor specifies the marginal count
+distribution, link function, and any additional distributional information
+needed to fit a copula count time series model. For zero-inflated marginals,
+the link function is used for the main count distribution, while the
+zero-inflation component is modeled through a logit link.
 
 The following marginal families are currently supported:
 \itemize{
@@ -72,28 +75,16 @@ Supported link functions depend on the marginal family:
 \details{
 Marginal Models for Copula Count Time Series
 
-The marginal constructors are designed to be supplied to \code{\link{gctsc}},
-rather than called during likelihood evaluation by the user. Each returned
-marginal object contains internal functions for:
-\itemize{
-\item computing starting values for the marginal parameters;
-\item determining the number of marginal parameters;
-\item converting observed counts into lower and upper latent truncation
-bounds for the copula likelihood.
-}
+The returned marginal object also contains a \code{bounds} component, which
+converts observed counts into the lower and upper latent bounds used in the
+likelihood. This component is used internally by \code{\link{gctsc}} during
+likelihood evaluation, and can also be accessed from the returned marginal
+object by users who need to construct these bounds directly, for example
+when computing the likelihood using one of the approximation methods provided
+in the package.
 
-Internally, the design input \code{x} is represented as a named list of
-design matrices. For non-zero-inflated marginals, \code{x} contains
-\code{x$mu}. For zero-inflated marginals, \code{x} contains both
-\code{x$mu} and \code{x$pi0}. These matrices are constructed automatically
-by \code{\link{gctsc}} from the supplied formula and data.
-
-For zero-inflated marginals, the \code{mu} component controls the main
-count distribution, while the \code{pi0} component controls the structural
-zero probability through a logit link.
-
-The optional bounds \code{lambda.lower} and \code{lambda.upper} are attached
-to the starting values and used during numerical optimization.
+The optional \code{lambda.lower} and \code{lambda.upper} values are attached
+to the marginal parameters and used during numerical optimization.
 }
 \examples{
 poisson.marg(link = "log")

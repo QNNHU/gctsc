@@ -3,14 +3,17 @@
 \docType{data}
 \name{campyl}
 \alias{campyl}
-\title{Weekly Campylobacter case counts across Germany}
+\title{Weekly Campylobacter Case Counts Across Germany from 2001 to 2024}
 \format{
-A data frame with 1248 rows and 413 variables.
+A data frame with 1248 rows and 411 variables.
 }
 \usage{
 data("campyl")
 }
 \description{
-Weekly Campylobacter case counts across Germany
+Weekly Campylobacter case counts reported across German districts from 2001 to 2024. Each year contains 52 weeks.
+Each row corresponds to one reporting week, and the district-level columns contain
+weekly case counts for individual districts. The data use 52 reporting weeks
+per year.
 }
 \keyword{datasets}

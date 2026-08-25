@@ -84,7 +84,7 @@ Copula Models for Count Time Series via Minimax Exponential Tilting,
 
 Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
 for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
-\strong{9}: 1--49.
+\strong{9}(2): 43.
 }
 \seealso{
 \code{\link{gctsc}}, \code{\link{sim_gctsc}},

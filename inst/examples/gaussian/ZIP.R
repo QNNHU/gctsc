@@ -4,17 +4,6 @@
 
 library(gctsc)
 
-## --- Parametrization note ----------------------------------------------
-## Simulation:
-##    mu        = Poisson mean (identity scale)
-##    pi0(t)    = zero-inflation probability in (0,1)
-##
-## Estimation (in gctsc):
-##    logit{pi0(t)} = η_pi0(t) = α_0 + α_1 x_1(t) + ...
-## so that:
-##    pi0(t) = plogis(η_pi0(t))
-##
-## This allows covariates and ensures pi0(t) ∈ (0,1).
 
 ## --- Parameter setup ---
 n   <- 500
@@ -53,11 +42,7 @@ llk_ghk  <- pmvn( lower = ab[,1], upper = ab[,2],
 
 c(TMET = llk_tmet, GHK = llk_ghk)
 
-## --- Fit ZIP Gaussian copula model using TMET ---
-## zip.marg(link="identity") means:
-##   μ(t)   = identity(X_mu β)
-##   logit(pi0(t)) = η_pi0(t)
-## Estimation always uses logit for pi0.
+## --- Fit ZIP Gaussian copula model ---
 fit_zip <- gctsc(
   formula  = list(mu = y ~ 1, pi0 = ~ 1), data = data.frame(y),
   marginal = zip.marg(link = "log"),

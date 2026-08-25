@@ -21,9 +21,9 @@
 #' \itemize{
 #'   \item \code{npar}: Number of ARMA parameters (\eqn{p + q}).
 #'   \item \code{od}: Integer vector \code{c(p, q)}.
-#'   \item \code{start}: Function to compute starting values from data,
-#'         typically using \code{\link[stats]{arima}}.
-#'   \item \code{lower}, \code{upper}: Parameter bounds.
+#'   \item \code{start}: Function that returns starting values for ARMA parameters. 
+#'   The default starting values are \code{0.1} for each parameter. If supplied,
+#'    \code{tau.lower} and \code{tau.upper} are attached to the return vectors as \code{lower}, \code{upper} attribute.
 #' }
 #'
 #' @details
@@ -40,17 +40,25 @@ arma.cormat <- function(p = 0, q = 0, tau.lower = NULL, tau.upper = NULL) {
   ans <- list()
 
   ans$npar <- p + q
-
+  
   ans$start <- function(y) {
-    tau <- arima(y, order = c(p, 0, q))$coef[1:(p + q)]
+    tau <- rep(0, p + q)
+    
+    if (p > 0) {
+      tau[seq_len(p)] <- 0.1
+    }
+    
+    if (q > 0) {
+      tau[p + seq_len(q)] <- 0.1
+    }
+    
     ar_names <- if (p > 0) paste0("ar", 1:p) else NULL
     ma_names <- if (q > 0) paste0("ma", 1:q) else NULL
     names(tau) <- c(ar_names, ma_names)
-
-    # Attach bounds if provided
+    
     if (!is.null(tau.lower)) attr(tau, "lower") <- tau.lower
     if (!is.null(tau.upper)) attr(tau, "upper") <- tau.upper
-
+    
     tau
   }
 

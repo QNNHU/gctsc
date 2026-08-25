@@ -3,14 +3,27 @@
 \docType{data}
 \name{KCWC}
 \alias{KCWC}
-\title{Daily aggregated weather measurements for KCWC station}
+\title{Daily Hot-Hour Counts at KCWC Weather Station}
 \format{
-A data frame with 2665 rows and 4 variables.
+A data frame with 2665 rows and 9 variables.
+\describe{
+\item{date}{Calendar date of the daily observation.}
+\item{hot}{Number of hot hours observed during the day.}
+\item{humidity}{Daily average humidity.}
+\item{t}{Time index from 1 to 2665.}
+\item{year}{Year extracted from \code{date}.}
+\item{month}{Month extracted from \code{date}.}
+\item{dow}{Day of the week extracted from \code{date}.}
+\item{sin365}{Annual sine term, computed as \eqn{\sin(2\pi t/365.25)}.}
+\item{cos365}{Annual cosine term, computed as \eqn{\cos(2\pi t/365.25)}.}
+}
 }
 \usage{
 data("KCWC")
 }
 \description{
-Daily aggregated weather measurements for KCWC station
+Daily aggregated weather measurements for KCWC station. The main response is the
+number of hot hours in each day, defined as the number of hourly temperature measurements
+exceeding 95 degrees Fahrenheit.
 }
 \keyword{datasets}

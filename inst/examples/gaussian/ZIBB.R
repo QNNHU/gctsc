@@ -4,21 +4,6 @@
 
 library(gctsc)
 
-## --- Parametrization note ----------------------------------------------
-## Simulation:
-##   sim_zibb() uses:
-##       prob(t) ∈ (0,1)        (success probability for BB component)
-##       rho ∈ (0,1)            (intra-class correlation)
-##       pi0(t) ∈ (0,1)         (zero inflation)
-##
-## Estimation:
-##   gctsc() fits two logistic regressions:
-##       logit{prob(t)} = η_mu(t)
-##       logit{pi0(t)}  = η_pi0(t)
-##
-## allowing covariates in BOTH the mean and zero-inflation components.
-## This avoids boundary problems and ensures prob(t), pi0(t) ∈ (0,1).
-
 ## --- Parameter setup ---
 n    <- 500
 size <- 24
@@ -48,8 +33,24 @@ y <- sim_data$y
 
 X <- list(mu = matrix(1, nrow = n), pi0 = matrix(1, nrow = n))
 
+## --- Compute truncation bounds ---
+lambda <- c(qlogis(prob), qlogis(rho), qlogis(pi0))
 
-## --- Fit ZIBB copula model using TMET ---
+marg <- zibb.marg(link = "logit", size= size)
+ab <- marg$bounds(y, X, lambda, family ="gaussian")
+
+## --- Likelihood approximation ---
+llk_tmet <- pmvn(lower = ab[,1], upper = ab[,2],
+                 tau = tau, od = arma_order, 
+                 pm = 30, QMC = TRUE,  method = "TMET")
+
+llk_ghk  <- pmvn( lower = ab[,1], upper = ab[,2],
+                  tau = tau, od = arma_order,
+                  QMC = TRUE,  method = "GHK")
+
+c(TMET = llk_tmet, GHK = llk_ghk)
+
+## --- Fit ZIBB copula model ---
 fit_zibb <- gctsc(
   formula  = list(mu = y ~ 1, pi0 = ~ 1), data = data.frame(y),
   marginal = zibb.marg(link = "logit", size = size),
@@ -65,23 +66,7 @@ predict(fit_zibb)
 ## -------------------------------
 ## Example: ZIBB AR(1) with seasonal zero-inflation π₀(t)
 ## -------------------------------
-## --- Parametrization note (for Example 2) ------------------------------------
-## Simulation:
-##   prob(t)  is constant here (no covariates in μ), passed directly to sim_zibb().
-##   pi0(t)   varies with seasonal covariates via:
-##        logit{pi0(t)} = X_pi(t)^T β_pi
-##   rho      controls Beta-Binomial overdispersion.
 
-## Estimation:
-##   gctsc() fits:
-##        logit{prob(t)} = η_mu(t)
-##        logit{pi0(t)}  = η_pi0(t)
-##   even if prob(t) is constant in the simulation.
-##
-## This ensures:
-##   – valid probabilities prob(t), pi0(t) ∈ (0,1)
-##   – natural support for covariates in the zero-inflation model
-##   – consistency across all ZI marginals in the package.
 library(gctsc)
 
 ## --- Parameter setup ---
@@ -91,8 +76,8 @@ phi  <- 0.85
 tau  <- c(phi)
 arma_order <- c(1, 0)
 
-prob <- 0.2        # constant prob(t)
-rho  <- 0.16               # ICC for BB component
+prob <- 0.2        
+rho  <- 0.16               
 
 ## Seasonal covariates for π₀(t)
 X_pi <- cbind(
@@ -120,6 +105,22 @@ sim_data <- sim_zibb(
 y <- sim_data$y
 
 
+## --- Compute truncation bounds ---
+lambda <- c(qlogis(prob), qlogis(rho), beta_pi)
+
+marg <- zibb.marg(link = "logit", size= size)
+ab <- marg$bounds(y, X, lambda, family ="gaussian")
+
+## --- Likelihood approximation ---
+llk_tmet <- pmvn(lower = ab[,1], upper = ab[,2],
+                 tau = tau, od = arma_order, 
+                 pm = 30, QMC = TRUE,  method  = "TMET")
+
+llk_ghk  <- pmvn( lower = ab[,1], upper = ab[,2],
+                  tau = tau, od = arma_order,
+                  QMC = TRUE,  method = "GHK")
+
+c(TMET = llk_tmet, GHK = llk_ghk)
 
 ## --- Fit using formula interface ---
 df <- data.frame(y = y, X_pi)
@@ -142,22 +143,7 @@ predict(fit_zibb_seasonal,newdata = df[500, ])
 ## -------------------------------
 ## Example: ZIBB AR(1) with covariates in μ(t) and π₀(t)
 ## -------------------------------
-## --- Parametrization note (for Example 3) ------------------------------------
-## Simulation:
-##   sim_zibb() uses:
-##      prob(t) = plogis( X_mu(t)^T β_mu )        # mean function on probability scale
-##      pi0(t)  = plogis( X_pi(t)^T α_pi )        # zero-inflation on probability scale
-##      rho     is the Beta-Binomial ICC.
 
-## Estimation:
-##   gctsc() fits two logistic regressions:
-##       logit{prob(t)} = X_mu(t)^T β_mu
-##       logit{pi0(t)}  = X_pi(t)^T α_pi
-##
-## Notes:
-##   – This automatically keeps prob(t), pi0(t) within (0,1).
-##   – Allows arbitrary covariates in BOTH μ(t) and π₀(t).
-##   – This parametrization is standard for zero-inflated count models.
 
 library(gctsc)
 
@@ -233,7 +219,7 @@ fit_zibb_cov <- gctsc(
   data     = data_df,
   marginal = zibb.marg(link = "logit", size = size),
   cormat   = arma.cormat(p = 1, q = 0),
-  method   = "GHK",family = "gaussian",
+  method   = "TMET",family = "gaussian",
   options  = gctsc.opts(seed = 1, M =1000)
 )
 

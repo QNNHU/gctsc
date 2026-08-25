@@ -4,12 +4,12 @@
 
 ## --- Parameter setup ---
 n <- 1000
-mu <- 3
+mu <- 30
 phi <- 0.5
 theta <- 0
 arma_order <- c(1, 0)
 tau <- c(phi)
-dispersion <- 2
+dispersion <- 0.15
 
 ## --- Simulate data ---
 set.seed(7)
@@ -21,7 +21,7 @@ y <- sim_data$y
 X <- matrix(1, nrow = n)
 
 ## --- Compute truncation bounds ---
-marg <- negbin.marg()
+marg <- negbin.marg(link = "identity")
 ab <- marg$bounds(y, x = list(mu=X), c(mu,dispersion),family ="gaussian")
 
 ## --- Likelihood approximation ---
@@ -40,20 +40,6 @@ llk_ce  <- pmvn( lower = ab[,1], upper = ab[,2],
 
 c(TMET = llk_tmet, GHK = llk_ghk, CE = llk_ce)
 
-## --- Fit Gaussian copula model using TMET ---
-fit_tmet <- gctsc(
-  formula = y ~ 1, data= as.data.frame(y),
-  marginal = negbin.marg(),
-  cormat   = arma.cormat(p = 1, q = 0),
-  method   = "TMET",
-  family = "gaussian",
-  QMC      = TRUE,
-  options  = gctsc.opts(seed = 1)
-)
-
-summary(fit_tmet)
-plot(fit_tmet)       # residual diagnostics
-predict(fit_tmet)    # one-step forecasting
 
 ## --- Fit Gaussian copula model using GHK ---
 system.time({
@@ -67,16 +53,19 @@ fit_ghk <- gctsc(
 )})
 
 
+## --- Fit Gaussian copula model using CE ---
 system.time({
-  fit_ghk <- gcmr(
+  fit_CE <- gctsc(
     formula = y ~ 1,data= as.data.frame(y),
-    marginal = gcmr::negbin.marg(),
-    cormat   = gcmr::arma.cormat(p = 1, q = 0)
+    marginal = negbin.marg(),
+    cormat   = arma.cormat(p = 1, q = 0),
+    method   = "CE",
+    family = "gaussian",
+    QMC      = TRUE
   )})
 
 
-
-plot(fit_ghk)
+plot(fit_CE)
 
 
 
@@ -127,16 +116,18 @@ sim_data <- sim_negbin(
 )
 y <- sim_data$y
 
+
+
 ## Assemble data for model fitting
 data_df <- data.frame(Y = y, X)
 
-## Fit Gaussian Copula model using GHK
+## Fit Gaussian Copula model using CE
 fit_nb <- gctsc(
   formula  = Y ~ x2 + x3 + x4,
   data     = data_df[1:499,],
   marginal = negbin.marg(link = "log"),
   cormat   = arma.cormat(p = 1, q = 0),
-  method   = "GHK",
+  method   = "CE",
   family = "gaussian",
   options  = gctsc.opts(seed = 1, M = 1000)
 )

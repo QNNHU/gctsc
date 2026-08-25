@@ -15,7 +15,7 @@ loglik_ghk <- function(ab, tau, od, family, M = 1000,QMC = TRUE,
   a <- ab[, 1]
   b <- ab[, 2]
   
-  tryCatch(
+  out <- tryCatch(
     ghk_core(a, b, tau, od, family = family, M = M, QMC = QMC,
              ret_llk = ret_llk, df = df, engine = engine),
     error = function(e) {
@@ -23,6 +23,8 @@ loglik_ghk <- function(ab, tau, od, family, M = 1000,QMC = TRUE,
       -1e20
     }
   )
+
+  return(out)
 }
 
 
@@ -45,15 +47,8 @@ ghk_core <- function(lower, upper, tau, od, family, M = 1000, QMC = TRUE,
   
   ghk_obj <- cond_mv_ghk(n, tau, od)
   
-  sampler_input <- list(
-    a = lower,
-    b = upper,
-    condSd = sqrt(ghk_obj$cond_var),
-    M = M,
-    phi = ghk_obj$phi,
-    q = ghk_obj$q,
-    m = ghk_obj$m,
-    Theta = ghk_obj$Theta,
+  sampler_input <- list(a = lower, b = upper, condSd = sqrt(ghk_obj$cond_var),
+    M = M, phi = ghk_obj$phi, q = ghk_obj$q, m = ghk_obj$m, Theta = ghk_obj$Theta,
     QMC = QMC
   )
   

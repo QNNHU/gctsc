@@ -11,18 +11,21 @@
 \code{\link{gctsc}}.}
 
 \item{newdata}{Optional one-row \code{data.frame} containing the covariate
-values at the prediction time point. The variables in \code{newdata}
-should match the variables used in the fitted model formula. If the fitted
-model is intercept-only, \code{newdata} may be omitted.
+values at the prediction time point. The variables in \code{newdata} should
+match those used in the fitted model formula. If the fitted model is
+intercept-only, \code{newdata} may be omitted.
 
 If the observed response at the prediction time is available, it may also
 be included in \code{newdata} using the same response variable name as in
-the fitted model. In that case, CRPS and LOGS are computed and returned.}
+the fitted model. In this case, CRPS and LOGS are computed and returned.}
 
 \item{y_max}{Optional nonnegative integer specifying the largest count value
-included in the predictive grid \code{0:y_max}. If \code{NULL}, \code{y_max}
-is selected automatically using \code{ceiling(max(y) + k * sd(y))}, where
-\code{y} is the fitted response series.}
+included in the predictive grid \code{0:y_max}. For bounded marginal
+distributions, this value is determined by the size parameter at the
+prediction time. For unbounded marginal distributions, if \code{y_max} is
+\code{NULL}, it is selected automatically as
+\code{ceiling(max(y) + k * sd(y))}, where \code{y} is the fitted response
+series.}
 
 \item{k}{Nonnegative numeric multiplier used to choose \code{y_max} when
 \code{y_max = NULL}. The default is \code{k = 3}.}
@@ -44,39 +47,42 @@ distribution is evaluated.
 predictive interval.
 \item \code{CRPS}: Continuous Ranked Probability Score, returned only if
 the observed response is supplied in \code{newdata}.
-\item \code{LOGS}: Logarithmic Score, returned only if the observed
-response is supplied in \code{newdata}.
+\item \code{LOGS}: Logarithmic Score, returned only if the observed response
+is supplied in \code{newdata}.
 \item \code{y_true}: Observed response value, returned only if supplied in
 \code{newdata}.
 }
 }
 \description{
-Computes the one-step-ahead predictive distribution for a fitted
-Gaussian or Student--t copula count time series model.
+Computes the one-step-ahead predictive distribution for a fitted Gaussian or
+Student-\eqn{t} copula count time series model.
 
-The predictive probability mass function is evaluated over the grid
-\code{0:y_max}. If \code{y_max} is not supplied, it is chosen automatically
-from the fitted response values as
-\code{ceiling(max(y) + k * sd(y))}. Summary statistics of the predictive
-distribution are returned. If the observed response is included in
-\code{newdata}, the Continuous Ranked Probability Score (CRPS) and
-Logarithmic Score (LOGS) are also computed.
+The predictive probability mass function is evaluated on the count grid
+\code{0:y_max}. For bounded marginal distributions, \code{y_max} is set to
+the size parameter at the prediction time. For unbounded marginal
+distributions, \code{y_max} may be supplied by the user; otherwise, it is
+selected automatically as \code{ceiling(max(y) + k * sd(y))}, where \code{y}
+is the fitted response series.
+
+The function returns summary statistics of the predictive distribution. If
+the observed response at the prediction time is included in \code{newdata},
+the Continuous Ranked Probability Score (CRPS) and Logarithmic Score (LOGS)
+are also computed.
 }
 \details{
 The function constructs prediction design matrices from the stored model
-terms using \code{\link[stats]{model.matrix}}. Thus the same formula
+terms using \code{\link[stats]{model.matrix}}. Therefore, the same formula
 convention used in model fitting is used for prediction, including automatic
 intercept handling and factor-variable expansion.
 
 For zero-inflated marginals, \code{newdata} is used to construct both the
-mean-component design matrix and the zero-inflation design matrix. The
-column names of the new design matrices must match those from the fitted
-model.
+mean-component design matrix and the zero-inflation design matrix. The column
+names of the new design matrices must match those from the fitted model.
 
-The predictive distribution is computed using the copula family and
-approximation method stored in the fitted object. For Gaussian copulas,
-multivariate normal rectangle probabilities are used. For Student--t
-copulas, multivariate t rectangle probabilities are used.
+For Gaussian copulas, the predictive distribution is computed using the
+approximation method stored in the fitted object.
+For Student-\eqn{t} copulas, the predictive distribution is currently computed using the
+GHK approximation.
 
 If the observed response is included in \code{newdata}, it must be a single
 nonnegative integer count and should not exceed \code{y_max}.
@@ -119,7 +125,7 @@ Copula Models for Count Time Series via Minimax Exponential Tilting,
 
 Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
 for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
-\strong{9}: 1--49.
+\strong{9}(2): 43.
 }
 \seealso{
 \code{\link{gctsc}}, \code{\link{arma.cormat}},

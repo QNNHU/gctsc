@@ -16,5 +16,5 @@ A list of class \code{summary.gctsc} containing model summary statistics.
 }
 \description{
 Computes standard errors, z-values, and p-values for the estimated parameters
-in a fitted \code{gctsc} object.
+in a fitted \code{gctsc} object if hessian is produced.
 }

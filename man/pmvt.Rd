@@ -107,7 +107,7 @@ pmvt(lower, upper, tau = tau, od = arma_order, method = "GHK", M = 200, df = df)
 pmvt(lower, upper, tau = tau, od = arma_order, method = "TMET", pm = 30, M = 200, df = df)
 }
 \references{
-Nguyen, Q. N. and De Oliveira, V. (2026). Scalable Likelihood Inference for Student–t Copula Count Time Series, \emph{Stats}, \strong{9}: 1--49.
+Nguyen, Q. N. and De Oliveira, V. (2026). Scalable Likelihood Inference for Student–t Copula Count Time Series, \emph{Stats}, \strong{9}(2): 43.
 }
 \seealso{
 \code{\link{pmvn}}, \code{\link{gctsc}},

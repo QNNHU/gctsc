@@ -71,11 +71,11 @@ finite numeric value greater than 2 when \code{family = "t"}.}
 the number of Monte Carlo or quasi-Monte Carlo samples used by
 simulation-based methods. If two values are supplied, staged optimization is
 performed, using the first value for an initial fit and the second value for
-refinement. This option is ignored for \code{method = "CE"}.
+refinement. Default is M = c(100, 1000). This option is ignored for \code{method = "CE"}.
 \item \code{seed}: optional integer seed used to make the simulated
 likelihood approximation reproducible;
-\item \code{opt}: optimization function used for likelihood
-maximization.
+\item \code{hessian}: Logical. If \code{TRUE}, the Hessian matrix is computed and used to obtain
+standard errors for the parameter estimates
 }
 Supplying \code{options$seed} is strongly recommended for TMET and GHK
 methods because it uses common random numbers across likelihood
@@ -206,7 +206,7 @@ Copula Models for Count Time Series via Minimax Exponential Tilting,
 
 Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
 for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
-\strong{9}: 1--49.
+\strong{9}(2): 43.
 }
 \seealso{
 \code{\link{gctsc.opts}}, \code{\link{arma.cormat}},

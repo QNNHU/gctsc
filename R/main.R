@@ -79,11 +79,11 @@
 #'   the number of Monte Carlo or quasi-Monte Carlo samples used by
 #'   simulation-based methods. If two values are supplied, staged optimization is
 #'   performed, using the first value for an initial fit and the second value for
-#'   refinement. This option is ignored for \code{method = "CE"}.
-#'     \item \code{seed}: optional integer seed used to make the simulated
+#'   refinement. Default is M = c(100, 1000). This option is ignored for \code{method = "CE"}.
+#'   \item \code{seed}: optional integer seed used to make the simulated
 #'           likelihood approximation reproducible;
-#'     \item \code{opt}: optimization function used for likelihood
-#'           maximization.
+#'   \item \code{hessian}: Logical. If \code{TRUE}, the Hessian matrix is computed and used to obtain
+#'    standard errors for the parameter estimates
 #'   }
 #'   Supplying \code{options$seed} is strongly recommended for TMET and GHK
 #'   methods because it uses common random numbers across likelihood
@@ -147,7 +147,7 @@
 #'
 #' Nguyen, Q. N. and De Oliveira, V. (2026), Scalable Likelihood Inference
 #' for Student--\eqn{t} Copula Count Time Series, \emph{Stats},
-#' \strong{9}: 1--49.
+#' \strong{9}(2): 43.
 #'
 #' @examples
 #' ## Example 1: Gaussian copula, Poisson marginal, AR(1)
@@ -475,9 +475,8 @@ gctsc.fit <- function(x, y, marginal, cormat,
   }
   
   f <- structure(list(
-    y = y, x = x, c = c, n = length(y), method = method,
-    marginal = marginal, cormat = cormat,
-    ibeta = 1:nbeta, itau = (nbeta + 1):(nbeta + ntau),
+    y = y, x = x, c = c, n = length(y), method = method,  marginal = marginal, cormat = cormat,
+    ibeta = 1:nbeta, itau = (nbeta + 1):(nbeta + ntau), 
     nbeta = nbeta, ntau = ntau, QMC = QMC, pm = pm,
     call = match.call(), init_eta = init_eta, coef = init_eta,
     lower = lb, upper = ub, options = options,family =family, df=df
@@ -538,41 +537,42 @@ gctsc.estimate <- function(cf) {
   cf$maximum <- ans$maximum
   cf$convergence <- ans$convergence
   cf$M_used <- if (cf$method == "CE") NA_integer_ else M_vec
-  system.time({
-  xlik <- llk(cf)
-  log.lik <- function(th) xlik(pmax(low,pmin(up,th)))
-  eps <- .Machine$double.eps^(1/4)
-  relStep <- 0.1
-  maxtry <- 10
-  delta <- ifelse(abs(eta)<1, eps, eps*eta)
-  di <- function(i,delta) {
-    x1 <- x2 <- eta
-    x1[i] <- x1[i] - delta[i]
-    x2[i] <- x2[i] + delta[i]
-    (log.lik(x2)-log.lik(x1))/(2*delta[i])
-  }
-  while (1) {
-    cf$jac <- sapply(seq_along(eta),di,delta)
-    if( all(is.finite(cf$jac)) ) break
-    delta <- delta/2
-    maxtry <- maxtry - 1
-    if (maxtry<0) stop("impossible to compute a finite jacobian")
-  }
+  if (cf$option$hessian){
+    xlik <- llk(cf)
+    log.lik <- function(th) xlik(pmax(low,pmin(up,th)))
+    eps <- .Machine$double.eps^(1/4)
+    relStep <- 0.1
+    maxtry <- 10
+    delta <- ifelse(abs(eta)<1, eps, eps*eta)
+    di <- function(i,delta) {
+      x1 <- x2 <- eta
+      x1[i] <- x1[i] - delta[i]
+      x2[i] <- x2[i] + delta[i]
+      (log.lik(x2)-log.lik(x1))/(2*delta[i])
+    }
+    while (1) {
+      cf$jac <- sapply(seq_along(eta),di,delta)
+      if( all(is.finite(cf$jac)) ) break
+      delta <- delta/2
+      maxtry <- maxtry - 1
+      if (maxtry<0) stop("impossible to compute a finite jacobian")
+    }
+    
+    a <- svd(cf$jac)
+    a$d <- pmax(a$d,sqrt(.Machine$double.eps)*a$d[1])
+    cf$hessian <- nlme::fdHess(rep(0,length(eta)),
+                              function(tx) sum(log.lik(eta+a$v%*%(tx/a$d))),
+                              minAbsPar=1,.relStep=relStep)$Hessian
   
-  a <- svd(cf$jac)
-  a$d <- pmax(a$d,sqrt(.Machine$double.eps)*a$d[1])
-  cf$hessian <- nlme::fdHess(rep(0,length(eta)),
-                            function(tx) sum(log.lik(eta+a$v%*%(tx/a$d))),
-                            minAbsPar=1,.relStep=relStep)$Hessian
-  cf$hessian = (cf$hessian+t(cf$hessian))/2
-  cf$hessian <- a$v%*%(outer(a$d,a$d)*(cf$hessian))%*%t(a$v)
-  })
-  h <- svd(cf$hessian)
-  idx <- h$d > sqrt(.Machine$double.eps)*h$d[1]
-  vcov <- h$u[,idx,drop=FALSE]%*%( (1/h$d[idx])*t(h$u[,idx,drop=FALSE]))
-  
-  if (!inherits(vcov, "try-error")) {
-    cf$se <- sqrt(diag(vcov))
+    cf$hessian = (cf$hessian+t(cf$hessian))/2
+    cf$hessian <- a$v%*%(outer(a$d,a$d)*(cf$hessian))%*%t(a$v)
+    h <- svd(cf$hessian)
+    idx <- h$d > sqrt(.Machine$double.eps)*h$d[1]
+    vcov <- h$u[,idx,drop=FALSE]%*%( (1/h$d[idx])*t(h$u[,idx,drop=FALSE]))
+    
+    if (!inherits(vcov, "try-error")) {
+      cf$se <- sqrt(diag(vcov))
+    }
   }
   
   
@@ -599,6 +599,8 @@ gctsc.estimate <- function(cf) {
 #'   value of \code{M}. This option is used only for simulation-based methods
 #'   such as \code{"GHK"} and \code{"TMET"} and is ignored for
 #'   \code{method = "CE"}.
+#' @param hessian Logical. If \code{TRUE}, the Hessian matrix is computed and used to obtain
+#' standard errors for the parameter estimates. The default is \code{TRUE}
 #' @param ... Additional control arguments passed to \code{\link[stats]{optim}}.
 #'
 #' @return
@@ -606,11 +608,13 @@ gctsc.estimate <- function(cf) {
 #' \item{\code{seed}}{Integer. The random seed used.}
 #' \item{\code{M}}{Positive integer or vector of two positive integers specifying
 #'   the Monte Carlo or quasi-Monte Carlo sample sizes.}
+#' \item{\code{hessian}}{Logical indicating whether the Hessian matrix is computed for 
+#'  standard error calculations.}
 #' \item{\code{opt}}{A function used internally by \code{gctsc()} to optimize
 #'   the approximate log-likelihood.}
 #'
 #' @export
-gctsc.opts <- function(seed = 1, M = c(100, 1000), ...) {
+gctsc.opts <- function(seed = 1, M = c(100, 1000), hessian = TRUE,...) {
   control <- list(...)
   
   ok_M <- is.numeric(M) &&
@@ -638,11 +642,7 @@ gctsc.opts <- function(seed = 1, M = c(100, 1000), ...) {
       val
     }
     
-    ans <- stats::optim(
-      start,
-      fn.opt,
-      method = "BFGS",
-      hessian = FALSE,
+    ans <- stats::optim(start, fn.opt, method = "BFGS",hessian = FALSE,
       control = control
     )
     
@@ -657,7 +657,7 @@ gctsc.opts <- function(seed = 1, M = c(100, 1000), ...) {
     )
   }
   
-  list(seed = seed, M = M, opt = opt)
+  list(seed = seed, M = M, opt = opt, hessian = hessian)
 }
 
 
@@ -750,7 +750,6 @@ llk.fn <- function(cfg, ab, tau, family) {
                    
                    stop("Unknown method")
   )
-  
   
   return(result)
 }
